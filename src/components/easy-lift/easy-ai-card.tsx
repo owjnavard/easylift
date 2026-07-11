@@ -1,10 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Bot, Sparkles } from "lucide-react";
+import { Sparkles, Bot } from "lucide-react";
 
-/**
- * The dark "Easy AI" insight card that appears on most pages.
- * Shows AI suggestions/insights and a primary CTA button.
- */
 export function EasyAiCard({
   insights,
   ctaLabel = "تحلیل هوشمند",
@@ -19,27 +15,34 @@ export function EasyAiCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg",
+        "relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-5 text-white shadow-sm",
         className
       )}
     >
-      <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-bold">
-          <Sparkles className="size-5 text-purple-400" />
+      <div className="absolute -left-6 -top-6 size-24 rounded-full bg-emerald-500/20 blur-2xl" />
+      <div className="relative flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-bold">
+          <span className="grid size-7 place-items-center rounded-lg bg-emerald-500/20 text-emerald-400">
+            <Sparkles className="size-4" />
+          </span>
           Easy AI
         </h3>
-        <Bot className="size-7 text-purple-300" />
+        <Bot className="size-5 text-emerald-400/70" />
       </div>
-      <div className="mt-6 space-y-4 text-sm text-slate-300">
+      <ul className="relative mt-4 space-y-3">
         {insights.map((line, i) => (
-          <p key={i} className="leading-relaxed">
-            {line}
-          </p>
+          <li
+            key={i}
+            className="flex gap-2 text-xs leading-relaxed text-slate-300"
+          >
+            <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-400" />
+            <span>{line}</span>
+          </li>
         ))}
-      </div>
+      </ul>
       <button
         onClick={onCta}
-        className="mt-8 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+        className="relative mt-5 w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
       >
         {ctaLabel}
       </button>

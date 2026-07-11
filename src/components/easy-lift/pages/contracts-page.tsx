@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, FileText, FileSpreadsheet, Pen } from "lucide-react";
+import { Plus, FileText, FileSpreadsheet, Pen, FileSignature } from "lucide-react";
 import {
   EasyAiCard,
   PageHeader,
@@ -35,11 +35,20 @@ const columns: Column<Contract>[] = [
     key: "no",
     header: "شماره",
     align: "right",
-    render: (r) => <span className="font-bold text-slate-800">{r.no}</span>,
+    render: (r) => (
+      <span className="font-mono font-bold text-emerald-600">{r.no}</span>
+    ),
   },
   { key: "client", header: "کارفرما", align: "center" },
-  { key: "quote", header: "پیش‌فاکتور", align: "center" },
-  { key: "amount", header: "مبلغ", align: "center" },
+  { key: "quote", header: "پیش‌فاکتور", align: "center", render: (r) => (
+    <span className="font-mono text-xs text-slate-500">{r.quote}</span>
+  ) },
+  {
+    key: "amount",
+    header: "مبلغ",
+    align: "center",
+    render: (r) => <span className="font-semibold text-slate-800">{r.amount}</span>,
+  },
   { key: "date", header: "تاریخ", align: "center" },
   {
     key: "status",
@@ -47,7 +56,7 @@ const columns: Column<Contract>[] = [
     align: "center",
     render: (r) =>
       r.status === "active" ? (
-        <StatusBadge tone="green">فعال</StatusBadge>
+        <StatusBadge tone="emerald">فعال</StatusBadge>
       ) : (
         <StatusBadge tone="amber">امضا نشده</StatusBadge>
       ),
@@ -57,10 +66,10 @@ const columns: Column<Contract>[] = [
     header: "پیشرفت",
     align: "center",
     render: (r) => (
-      <div className="mx-auto w-28">
+      <div className="mx-auto w-24">
         <StatBar
           percent={r.progress}
-          barClass={r.status === "active" ? "bg-blue-600" : "bg-amber-500"}
+          barClass={r.status === "active" ? "bg-emerald-500" : "bg-amber-500"}
         />
       </div>
     ),
@@ -71,19 +80,19 @@ export function ContractsPage() {
   return (
     <div>
       <PageHeader
+        icon={FileSignature}
         title="مدیریت قراردادها"
         subtitle="ثبت، پیگیری و مدیریت قراردادهای فروش آسانسور"
         searchPlaceholder="جستجوی شماره قرارداد..."
         actionLabel="قرارداد جدید"
       />
 
-      <div className="space-y-6 p-4 lg:p-8">
-        {/* KPI */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard tone="gradient" label="قراردادهای فعال" value="۶۲" />
-          <KpiCard label="در انتظار امضا" value="۸" />
-          <KpiCard label="در حال اجرا" value="۳۹" />
-          <KpiCard label="ارزش قراردادها" value="۵۱۲B" />
+      <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <KpiCard tone="hero" label="قراردادهای فعال" value="۶۲" icon={FileSignature} />
+          <KpiCard tone="amber" label="در انتظار امضا" value="۸" icon={FileText} />
+          <KpiCard tone="sky" label="در حال اجرا" value="۳۹" icon={FileText} />
+          <KpiCard tone="emerald" label="ارزش قراردادها" value="۵۱۲B" icon={FileText} />
         </section>
 
         <Toolbar
@@ -107,64 +116,63 @@ export function ContractsPage() {
           }
           actions={
             <>
-              <button className="grid size-11 place-items-center rounded-xl bg-slate-100 text-red-500 transition hover:bg-slate-200">
-                <FileText className="size-5" />
+              <button className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:bg-slate-50">
+                <FileText className="size-4" />
               </button>
-              <button className="grid size-11 place-items-center rounded-xl bg-slate-100 text-green-600 transition hover:bg-slate-200">
-                <FileSpreadsheet className="size-5" />
+              <button className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-emerald-600 transition hover:bg-slate-50">
+                <FileSpreadsheet className="size-4" />
               </button>
             </>
           }
         />
 
-        {/* Contract cards */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Panel className="transition hover:shadow-xl">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Panel className="el-card-hover p-5">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">CT-1405-021</h3>
-                <p className="text-sm text-slate-500">شرکت پارسیان</p>
+                <h3 className="font-mono font-bold text-emerald-600">CT-1405-021</h3>
+                <p className="mt-0.5 text-xs text-slate-500">شرکت پارسیان</p>
               </div>
-              <StatusBadge tone="green">فعال</StatusBadge>
+              <StatusBadge tone="emerald">فعال</StatusBadge>
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-slate-600">
-              <div>💰 8.4B ریال</div>
+            <div className="mt-4 grid grid-cols-2 gap-2.5 text-xs text-slate-600">
+              <div className="font-semibold text-slate-800">💰 8.4B ریال</div>
               <div>🛗 ۴ آسانسور</div>
-              <div>📅 1405/04/25</div>
+              <div>📅 ۱۴۰۵/۰۴/۲۵</div>
               <div>👤 احمدی</div>
             </div>
-            <div className="mt-6">
-              <div className="mb-2 flex justify-between text-sm">
+            <div className="mt-4">
+              <div className="mb-1.5 flex justify-between text-xs">
                 <span className="text-slate-500">پیشرفت اجرا</span>
-                <span className="font-semibold">۷۲٪</span>
+                <span className="font-semibold text-slate-700">۷۲٪</span>
               </div>
-              <StatBar percent={72} barClass="bg-blue-600" />
+              <StatBar percent={72} barClass="bg-emerald-500" />
             </div>
-            <div className="mt-6 flex gap-2">
-              <button className="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <div className="mt-4 flex gap-2">
+              <button className="flex-1 rounded-lg bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700">
                 جزئیات
               </button>
-              <button className="grid size-12 place-items-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200">
+              <button className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-slate-200">
                 <Pen className="size-4" />
               </button>
             </div>
           </Panel>
 
-          <Panel>
+          <Panel className="el-card-hover p-5">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-bold text-slate-800">CT-1405-020</h3>
-                <p className="text-sm text-slate-500">برج آریا</p>
+                <h3 className="font-mono font-bold text-emerald-600">CT-1405-020</h3>
+                <p className="mt-0.5 text-xs text-slate-500">برج آریا</p>
               </div>
               <StatusBadge tone="amber">در انتظار امضا</StatusBadge>
             </div>
-            <div className="mt-6 space-y-3 text-sm text-slate-600">
-              <div>💰 5.2B ریال</div>
-              <div>📅 1405/04/18</div>
+            <div className="mt-4 space-y-2 text-xs text-slate-600">
+              <div className="font-semibold text-slate-800">💰 5.2B ریال</div>
+              <div>📅 ۱۴۰۵/۰۴/۱۸</div>
               <div>👤 رضایی</div>
-              <div>📝 پیش‌فاکتور PF-14024</div>
+              <div className="font-mono">📝 PF-14024</div>
             </div>
-            <button className="mt-6 w-full rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-200">
+            <button className="mt-4 w-full rounded-lg bg-slate-100 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200">
               مشاهده قرارداد
             </button>
           </Panel>

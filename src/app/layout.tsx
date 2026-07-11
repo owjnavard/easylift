@@ -1,19 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 const vazirmatn = Vazirmatn({
   subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-vazirmatn",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Easy Lift — SaaS ERP آسانسور",
+  title: "Easy Lift — ERP آسانسور",
   description:
-    "نرم‌افزار مدیریت یکپارچه فرآیند فروش، طراحی، اجرا، انبار، خرید و حسابداری پروژه‌های آسانسور.",
-  keywords: ["Easy Lift", "آسانسور", "ERP", "SaaS", "مدیریت پروژه"],
+    "سامانه یکپارچه مدیریت فروش، طراحی، اجرا، انبار، خرید و حسابداری پروژه‌های آسانسور.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#14171e",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -23,9 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <body
-        className={`${vazirmatn.variable} font-sans antialiased bg-[#F4F7FE] text-slate-800`}
-      >
+      <body className={`${vazirmatn.variable} font-sans antialiased`}>
         {children}
         <Toaster />
       </body>

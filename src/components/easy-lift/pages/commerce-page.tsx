@@ -5,6 +5,7 @@ import {
   FileText,
   Truck,
   Factory,
+  Store,
 } from "lucide-react";
 import {
   EasyAiCard,
@@ -36,7 +37,9 @@ const columns: Column<Purchase>[] = [
     key: "code",
     header: "کد",
     align: "right",
-    render: (r) => <span className="font-semibold text-slate-800">{r.code}</span>,
+    render: (r) => (
+      <span className="font-mono font-semibold text-emerald-600">{r.code}</span>
+    ),
   },
   { key: "item", header: "کالا", align: "center" },
   { key: "project", header: "پروژه", align: "center" },
@@ -49,96 +52,107 @@ const columns: Column<Purchase>[] = [
       r.status === "pending" ? (
         <StatusBadge tone="amber">در انتظار</StatusBadge>
       ) : r.status === "approved" ? (
-        <StatusBadge tone="green">تأیید</StatusBadge>
+        <StatusBadge tone="emerald">تأیید</StatusBadge>
       ) : (
-        <StatusBadge tone="red">رد شده</StatusBadge>
+        <StatusBadge tone="rose">رد شده</StatusBadge>
       ),
   },
 ];
 
 const quickActions = [
-  { icon: ShoppingCart, label: "ثبت درخواست خرید", tone: "text-blue-600" },
-  { icon: FileText, label: "ثبت استعلام", tone: "text-green-600" },
-  { icon: Truck, label: "ثبت سفارش خرید", tone: "text-orange-500" },
-  { icon: Factory, label: "تأمین‌کنندگان", tone: "text-purple-600" },
+  { icon: ShoppingCart, label: "درخواست خرید", tone: "text-emerald-600 bg-emerald-50" },
+  { icon: FileText, label: "ثبت استعلام", tone: "text-sky-600 bg-sky-50" },
+  { icon: Truck, label: "سفارش خرید", tone: "text-amber-600 bg-amber-50" },
+  { icon: Factory, label: "تأمین‌کنندگان", tone: "text-violet-600 bg-violet-50" },
 ];
 
 export function CommercePage() {
   return (
     <div>
       <PageHeader
+        icon={Store}
         title="مدیریت بازرگانی"
         subtitle="مدیریت خرید، استعلام، سفارشات و تأمین‌کنندگان"
         searchPlaceholder="جستجو..."
         actionLabel="درخواست خرید"
       />
 
-      <div className="space-y-6 p-4 lg:p-8">
-        {/* KPI */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard tone="gradient" label="درخواست خرید" value="۲۸" />
-          <KpiCard label="سفارش خرید" value="۱۴" />
-          <KpiCard label="تأمین‌کننده" value="۵۷" />
-          <Panel className="p-6">
-            <p className="text-sm text-slate-500">در انتظار تأیید</p>
-            <h3 className="mt-4 text-5xl font-black text-orange-500">۹</h3>
-          </Panel>
+      <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <KpiCard tone="hero" label="درخواست خرید" value="۲۸" icon={ShoppingCart} />
+          <KpiCard tone="sky" label="سفارش خرید" value="۱۴" icon={Truck} />
+          <KpiCard tone="violet" label="تأمین‌کننده" value="۵۷" icon={Factory} />
+          <KpiCard tone="amber" label="در انتظار تأیید" value="۹" icon={FileText} />
         </section>
 
         {/* Quick actions */}
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {quickActions.map((a) => (
             <button
               key={a.label}
-              className="rounded-3xl bg-white p-6 text-center shadow-sm transition hover:shadow-xl lg:p-8"
+              className="el-card-hover flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 text-right shadow-sm"
             >
-              <a.icon className={`mx-auto size-8 ${a.tone}`} />
-              <div className="mt-4 font-bold text-slate-700">{a.label}</div>
+              <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${a.tone}`}>
+                <a.icon className="size-5" />
+              </span>
+              <span className="text-sm font-bold text-slate-700">{a.label}</span>
             </button>
           ))}
         </section>
 
-        {/* Content */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Panel padded={false} className="overflow-hidden">
-              <div className="border-b border-slate-100 p-6">
-                <h3 className="text-lg font-bold text-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                <h3 className="text-sm font-bold text-slate-900">
                   آخرین درخواست‌های خرید
                 </h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                  {rows.length} مورد
+                </span>
               </div>
               <DataTable
                 columns={columns}
                 data={rows}
                 onRowClick={() => {}}
-                className="rounded-none shadow-none"
+                className="rounded-none border-0 shadow-none"
               />
             </Panel>
           </div>
 
-          <div className="space-y-6">
-            <Panel className="p-6">
-              <h3 className="font-bold text-slate-800">تأمین‌کنندگان برتر</h3>
-              <div className="mt-5 space-y-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">آسانبر نوین</span>
-                  <span className="font-semibold text-green-600">۹۸٪</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">سپهر آسانسور</span>
-                  <span className="font-semibold text-green-600">۹۴٪</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">پارس لیفت</span>
-                  <span className="font-semibold text-green-600">۹۱٪</span>
-                </div>
+          <div className="space-y-5">
+            <Panel className="p-5">
+              <h3 className="text-sm font-bold text-slate-900">
+                تأمین‌کنندگان برتر
+              </h3>
+              <div className="mt-4 space-y-3.5">
+                {[
+                  { n: "آسانبر نوین", q: 98 },
+                  { n: "سپهر آسانسور", q: 94 },
+                  { n: "پارس لیفت", q: 91 },
+                ].map((s) => (
+                  <div key={s.n}>
+                    <div className="mb-1 flex justify-between text-xs">
+                      <span className="text-slate-600">{s.n}</span>
+                      <span className="font-semibold text-emerald-600">
+                        {s.q.toLocaleString("fa-IR")}٪
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/70">
+                      <div
+                        className="h-full rounded-full bg-emerald-500"
+                        style={{ width: `${s.q}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </Panel>
 
             <EasyAiCard
               insights={[
                 "قیمت موتور گیرلس ۷٪ کاهش یافته است.",
-                "بهترین تأمین‌کننده برای ریل T90 شرکت پارس لیفت است.",
+                "بهترین تأمین‌کننده ریل T90 پارس لیفت است.",
                 "۳ درخواست خرید نیاز به تأیید مدیر دارند.",
               ]}
               ctaLabel="تحلیل هوشمند"

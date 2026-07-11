@@ -8,6 +8,7 @@ import {
   FileText,
   ArrowDownLeft,
   ArrowUpRight,
+  Calculator,
 } from "lucide-react";
 import {
   EasyAiCard,
@@ -29,12 +30,12 @@ import {
 } from "recharts";
 
 const incomeData = [
-  { m: "فر", in: 32, out: 18 },
-  { m: "ار", in: 45, out: 22 },
-  { m: "خر", in: 38, out: 25 },
-  { m: "تی", in: 52, out: 30 },
-  { m: "مر", in: 61, out: 35 },
-  { m: "شه", in: 48, out: 28 },
+  { m: "فروردین", in: 32, out: 18 },
+  { m: "اردیبهشت", in: 45, out: 22 },
+  { m: "خرداد", in: 38, out: 25 },
+  { m: "تیر", in: 52, out: 30 },
+  { m: "مرداد", in: 61, out: 35 },
+  { m: "شهریور", in: 48, out: 28 },
 ];
 
 interface Txn {
@@ -59,7 +60,9 @@ const columns: Column<Txn>[] = [
     key: "no",
     header: "شماره",
     align: "right",
-    render: (r) => <span className="font-bold text-slate-800">{r.no}</span>,
+    render: (r) => (
+      <span className="font-mono font-semibold text-slate-800">{r.no}</span>
+    ),
   },
   {
     key: "type",
@@ -67,18 +70,23 @@ const columns: Column<Txn>[] = [
     align: "center",
     render: (r) =>
       r.type === "receipt" ? (
-        <span className="inline-flex items-center gap-1 text-green-600">
-          <ArrowDownLeft className="size-4" /> دریافت
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+          <ArrowDownLeft className="size-3.5" /> دریافت
         </span>
       ) : (
-        <span className="inline-flex items-center gap-1 text-red-500">
-          <ArrowUpRight className="size-4" /> پرداخت
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-500">
+          <ArrowUpRight className="size-3.5" /> پرداخت
         </span>
       ),
   },
   { key: "party", header: "طرف حساب", align: "center" },
   { key: "project", header: "پروژه", align: "center" },
-  { key: "amount", header: "مبلغ", align: "center" },
+  {
+    key: "amount",
+    header: "مبلغ",
+    align: "center",
+    render: (r) => <span className="font-semibold text-slate-800">{r.amount}</span>,
+  },
   { key: "date", header: "تاریخ", align: "center" },
   {
     key: "status",
@@ -86,7 +94,7 @@ const columns: Column<Txn>[] = [
     align: "center",
     render: (r) =>
       r.status === "done" ? (
-        <StatusBadge tone="green">انجام شد</StatusBadge>
+        <StatusBadge tone="emerald">انجام شد</StatusBadge>
       ) : (
         <StatusBadge tone="amber">در انتظار</StatusBadge>
       ),
@@ -94,99 +102,93 @@ const columns: Column<Txn>[] = [
 ];
 
 const quickActions = [
-  { icon: ArrowDownLeft, label: "ثبت دریافت", tone: "text-green-600" },
-  { icon: ArrowUpRight, label: "ثبت پرداخت", tone: "text-red-500" },
-  { icon: FileText, label: "فاکتور خرید", tone: "text-blue-600" },
-  { icon: Receipt, label: "فاکتور فروش", tone: "text-purple-600" },
+  { icon: ArrowDownLeft, label: "ثبت دریافت", tone: "text-emerald-600 bg-emerald-50" },
+  { icon: ArrowUpRight, label: "ثبت پرداخت", tone: "text-rose-600 bg-rose-50" },
+  { icon: FileText, label: "فاکتور خرید", tone: "text-sky-600 bg-sky-50" },
+  { icon: Receipt, label: "فاکتور فروش", tone: "text-violet-600 bg-violet-50" },
 ];
 
 export function AccountingPage() {
   return (
     <div>
       <PageHeader
+        icon={Calculator}
         title="حسابداری"
         subtitle="مدیریت دریافت‌ها، پرداخت‌ها، فاکتورها و سود و زیان پروژه‌ها"
         searchPlaceholder="جستجوی تراکنش..."
         actionLabel="ثبت تراکنش"
       />
 
-      <div className="space-y-6 p-4 lg:p-8">
-        {/* KPI */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard tone="gradient" label="درآمد ماه" value="۴۸B" />
-          <Panel className="p-6">
-            <p className="text-sm text-slate-500">هزینه‌ها</p>
-            <h3 className="mt-4 text-5xl font-black text-red-500">۲۱B</h3>
-          </Panel>
-          <Panel className="p-6">
-            <p className="text-sm text-slate-500">سود خالص</p>
-            <h3 className="mt-4 text-5xl font-black text-green-600">۲۷B</h3>
-          </Panel>
-          <KpiCard label="فاکتورهای معوق" value="۹" />
+      <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <KpiCard tone="hero" label="درآمد ماه" value="۴۸B" icon={Wallet} />
+          <KpiCard tone="rose" label="هزینه‌ها" value="۲۱B" icon={ArrowUpRight} />
+          <KpiCard tone="emerald" label="سود خالص" value="۲۷B" icon={TrendingUp} />
+          <KpiCard tone="amber" label="فاکتورهای معوق" value="۹" icon={Receipt} />
         </section>
 
-        {/* Quick actions */}
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {quickActions.map((a) => (
             <button
               key={a.label}
-              className="rounded-3xl bg-white p-6 text-center shadow-sm transition hover:shadow-xl"
+              className="el-card-hover flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 text-right shadow-sm"
             >
-              <a.icon className={`mx-auto size-8 ${a.tone}`} />
-              <div className="mt-4 font-bold text-slate-700">{a.label}</div>
+              <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${a.tone}`}>
+                <a.icon className="size-5" />
+              </span>
+              <span className="text-sm font-bold text-slate-700">{a.label}</span>
             </button>
           ))}
         </section>
 
-        {/* Chart + AI */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Panel className="p-6 lg:col-span-2">
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <Panel className="p-5 lg:col-span-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-800">
+              <h3 className="text-sm font-bold text-slate-900">
                 دریافت و پرداخت
               </h3>
-              <div className="flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-full bg-green-500" /> دریافت
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="flex items-center gap-1">
+                  <span className="size-2 rounded-full bg-emerald-500" /> دریافت
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-full bg-red-400" /> پرداخت
+                <span className="flex items-center gap-1">
+                  <span className="size-2 rounded-full bg-rose-400" /> پرداخت
                 </span>
               </div>
             </div>
-            <div className="mt-6 h-64 w-full">
+            <div className="mt-4 h-56 w-full sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={incomeData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  barGap={6}
+                  margin={{ top: 10, right: 8, left: -22, bottom: 0 }}
+                  barGap={4}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke="#EEF2FF"
+                    stroke="#eef2f1"
                   />
                   <XAxis
                     dataKey="m"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tick={{ fill: "#94a3b8", fontSize: 10 }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
                   />
                   <Tooltip
                     contentStyle={{
-                      borderRadius: 16,
+                      borderRadius: 12,
                       border: "1px solid #e2e8f0",
                       fontFamily: "var(--font-vazirmatn)",
                       fontSize: 12,
                     }}
                   />
-                  <Bar dataKey="in" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="out" fill="#f87171" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="in" fill="#059669" radius={[5, 5, 0, 0]} />
+                  <Bar dataKey="out" fill="#fb7185" radius={[5, 5, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -202,46 +204,44 @@ export function AccountingPage() {
           />
         </section>
 
-        {/* Transactions */}
         <div>
-          <h3 className="mb-3 text-lg font-bold text-slate-800">
+          <h3 className="mb-3 text-sm font-bold text-slate-900">
             آخرین تراکنش‌ها
           </h3>
           <DataTable columns={columns} data={rows} onRowClick={() => {}} />
         </div>
 
-        {/* Profit cards */}
-        <section className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <Panel className="p-6">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Panel className="p-5">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-green-100 text-green-600">
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
                 <TrendingUp className="size-5" />
-              </div>
+              </span>
               <div>
-                <p className="text-sm text-slate-500">سود پروژه پارسیان</p>
-                <h4 className="text-2xl font-black text-slate-800">۳.۲B</h4>
+                <p className="text-xs text-slate-500">سود پروژه پارسیان</p>
+                <h4 className="text-xl font-extrabold text-slate-900">۳.۲B</h4>
               </div>
             </div>
           </Panel>
-          <Panel className="p-6">
+          <Panel className="p-5">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-amber-100 text-amber-600">
+              <span className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-600">
                 <Wallet className="size-5" />
-              </div>
+              </span>
               <div>
-                <p className="text-sm text-slate-500">سود پروژه الماس</p>
-                <h4 className="text-2xl font-black text-slate-800">۱.۱B</h4>
+                <p className="text-xs text-slate-500">سود پروژه الماس</p>
+                <h4 className="text-xl font-extrabold text-slate-900">۱.۱B</h4>
               </div>
             </div>
           </Panel>
-          <Panel className="p-6">
+          <Panel className="p-5">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-red-100 text-red-500">
+              <span className="grid size-10 place-items-center rounded-xl bg-rose-50 text-rose-500">
                 <TrendingDown className="size-5" />
-              </div>
+              </span>
               <div>
-                <p className="text-sm text-slate-500">زیان پروژه سپهر</p>
-                <h4 className="text-2xl font-black text-slate-800">۱۸۰M</h4>
+                <p className="text-xs text-slate-500">زیان پروژه سپهر</p>
+                <h4 className="text-xl font-extrabold text-slate-900">۱۸۰M</h4>
               </div>
             </div>
           </Panel>
