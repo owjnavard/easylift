@@ -18,6 +18,21 @@ export interface StageConfig {
 
 export const SURVEY_STAGES: StageConfig[] = [
   {
+    id: 0,
+    label: "اطلاعات اولیه",
+    icon: "📋",
+    fields: [
+      { key: "customerName", label: "نام مشتری", unit: "", placeholder: "شرکت پارسیان" },
+      { key: "buildingAddress", label: "آدرس ساختمان", unit: "", placeholder: "تهران، شهرک غرب" },
+      { key: "buildingUsage", label: "کاربری ساختمان", unit: "", placeholder: "مسکونی" },
+      { key: "floorCount", label: "تعداد طبقات", unit: "طبقه", placeholder: "۱۲" },
+      { key: "unitsPerFloor", label: "تعداد واحد در هر طبقه", unit: "واحد", placeholder: "۴" },
+      { key: "elevatorCount", label: "تعداد دستگاه آسانسور", unit: "دستگاه", placeholder: "۱" },
+      { key: "buildingHeight", label: "ارتفاع کل ساختمان", unit: "m", step: 0.5, placeholder: "۴۰" },
+      { key: "streetWidth", label: "عرض خیابان", unit: "m", step: 0.5, placeholder: "۱۲" },
+    ],
+  },
+  {
     id: 1,
     label: "چاله",
     icon: "⛏️",
