@@ -4,7 +4,7 @@ import { ArrowRight, Code2, User } from "lucide-react";
 import { WorkflowStepper } from "./workflow-stepper";
 import { HistoryPanel } from "./history-panel";
 import { Step1Request } from "./step1-request";
-import { Step2Survey } from "./step2-survey";
+import { Step2Refer } from "./step2-refer";
 import { Step3Quote } from "./step3-quote";
 import { Step4Contract } from "./step4-contract";
 import { Step5Activate } from "./step5-activate";
@@ -65,7 +65,7 @@ export function WorkflowView({ id }: { id: string }) {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="min-w-0 lg:col-span-2">
             {req.stage === 1 && <Step1Request id={id} />}
-            {req.stage === 2 && <Step2Survey id={id} />}
+            {req.stage === 2 && <Step2Refer id={id} />}
             {req.stage === 3 && <Step3Quote id={id} />}
             {req.stage === 4 && <Step4Contract id={id} />}
             {req.stage === 5 && <Step5Activate id={id} />}

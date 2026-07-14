@@ -2,23 +2,26 @@
 
 import { FolderOpen, Cog, ArrowLeft } from "lucide-react";
 import { Panel, StatusBadge } from "@/components/easy-lift";
+import { useProjectStore } from "@/lib/project-store";
 import { useNav } from "@/lib/nav-store";
+import { useShallow } from "zustand/react/shallow";
 
 export function TechnicalPage() {
+  const projects = useProjectStore((s) => s.projects);
+  const elevators = useProjectStore((s) => s.elevators);
+  const selectProject = useProjectStore((s) => s.selectProject);
+  const selectElevator = useProjectStore((s) => s.selectElevator);
   const setPage = useNav((s) => s.setPage);
 
-  const projects = [
-    { n: "پروژه پارسیان", code: "P-۱۴۰۵۰۱", floors: "۱۲ طبقه", elevators: 4 },
-    { n: "پروژه الماس", code: "P-۱۴۰۵۰۲", floors: "۸ طبقه", elevators: 2 },
-    { n: "پروژه سپهر", code: "P-۱۴۰۵۰۳", floors: "۶ طبقه", elevators: 1 },
-  ];
+  function openProject(projectId: string) {
+    selectProject(projectId);
+    setPage("project");
+  }
 
-  const elevators = [
-    { n: "آسانسور A3", proj: "پروژه پارسیان", status: "در حال اجرا", tone: "emerald", p: 85 },
-    { n: "آسانسور A4", proj: "پروژه پارسیان", status: "برداشت اطلاعات", tone: "sky", p: 25 },
-    { n: "آسانسور A1", proj: "پروژه الماس", status: "تأمین کالا", tone: "amber", p: 40 },
-    { n: "آسانسور B2", proj: "پروژه سپهر", status: "تحویل موقت", tone: "emerald", p: 95 },
-  ];
+  function openElevator(elevatorId: string) {
+    selectElevator(elevatorId);
+    setPage("elevator");
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -27,7 +30,7 @@ export function TechnicalPage() {
           فنی و مهندسی
         </h1>
         <p className="text-sm text-slate-500">
-          مدیریت پروژه‌ها و آسانسورها از منظر فنی و اجرایی
+          مدیریت پروژه‌ها و آسانسورها از منظر فنی و اجرایی — شامل پروژه‌های پیش‌نویس (Draft) ایجاد‌شده از پیش‌فاکتورها
         </p>
       </div>
 
@@ -38,30 +41,37 @@ export function TechnicalPage() {
             <FolderOpen className="size-4 text-emerald-600" />
             پروژه‌ها
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-              {projects.length}
+              {projects.length.toLocaleString("fa-IR")}
             </span>
           </h2>
           <div className="space-y-3">
             {projects.map((p) => (
               <button
-                key={p.code}
-                onClick={() => setPage("project")}
+                key={p.id}
+                onClick={() => openProject(p.id)}
                 className="el-card-hover flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white p-4 text-right shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
                     <FolderOpen className="size-5" />
                   </span>
-                  <div>
-                    <div className="font-bold text-slate-900">{p.n}</div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900">{p.name}</div>
                     <div className="mt-0.5 text-xs text-slate-500">
-                      کد: {p.code} • {p.floors} • {p.elevators} آسانسور
+                      کد: {p.code} • {p.customer} • {p.floors.toLocaleString("fa-IR")} طبقه
                     </div>
                   </div>
                 </div>
-                <ArrowLeft className="size-4 text-slate-300" />
+                <StatusBadge tone={p.status === "active" ? "emerald" : "slate"}>
+                  {p.status === "active" ? "فعال" : "Draft"}
+                </StatusBadge>
               </button>
             ))}
+            {projects.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
+                هنوز پروژه‌ای ایجاد نشده است
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -71,33 +81,62 @@ export function TechnicalPage() {
             <Cog className="size-4 text-emerald-600" />
             آسانسورها
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-              {elevators.length}
+              {elevators.length.toLocaleString("fa-IR")}
             </span>
           </h2>
           <div className="space-y-3">
-            {elevators.map((e) => (
-              <button
-                key={e.n}
-                onClick={() => setPage("elevator")}
-                className="el-card-hover flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white p-4 text-right shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-slate-900 text-emerald-400">
-                    <Cog className="size-5" />
-                  </span>
-                  <div>
-                    <div className="font-bold text-slate-900">{e.n}</div>
-                    <div className="mt-0.5 text-xs text-slate-500">
-                      {e.proj} • {e.status}
+            {elevators.map((e) => {
+              const proj = projects.find((p) => p.id === e.projectId);
+              const done = !!e.survey?.completedAt;
+              const tone =
+                e.status === "executing" || e.status === "delivered"
+                  ? "emerald"
+                  : done
+                    ? "sky"
+                    : "amber";
+              const label =
+                e.status === "executing"
+                  ? "در حال اجرا"
+                  : e.status === "calculated"
+                    ? "برداشت تکمیل"
+                    : e.status === "design"
+                      ? "در انتظار برداشت"
+                      : e.status;
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => openElevator(e.id)}
+                  className="el-card-hover flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white p-4 text-right shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-slate-900 text-emerald-400">
+                      <Cog className="size-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-900">{e.name}</div>
+                      <div className="mt-0.5 truncate text-xs text-slate-500">
+                        {proj?.name ?? "—"}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <StatusBadge tone={e.tone as any}>{e.p}٪</StatusBadge>
-              </button>
-            ))}
+                  <StatusBadge tone={tone as any}>
+                    {typeof e.progress === "number" && e.progress > 0
+                      ? `${e.progress.toLocaleString("fa-IR")}٪`
+                      : label}
+                  </StatusBadge>
+                </button>
+              );
+            })}
+            {elevators.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
+                هنوز آسانسوری ثبت نشده است
+              </div>
+            ) : null}
           </div>
         </section>
       </div>
     </div>
   );
 }
+
+void ArrowLeft;

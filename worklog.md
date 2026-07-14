@@ -112,3 +112,41 @@ Stage Summary:
 - Draft->Active transition preserves all data; project added to active list.
 - Other modules untouched; shell router integration preserved via QuotationsPage export.
 - Lint clean, all GET 200, 0 runtime errors.
+
+---
+Task ID: quotations-workflow-relocation
+Agent: main
+Task: Move project creation + survey to Technical section; Step 2 becomes referral (no survey/parts in quotation)
+
+Work Log:
+- Created lib/project-store.ts: shared Zustand store (projects + elevators + surveys + parts). Projects have status draft/active; elevators have survey + computed parts. Seed: 3 projects (پارسیان draft-surveyed, الماس draft-not surveyed, سپهر active) with elevators matching.
+- Refactored lib/quotations-store.ts: QuotationRequest now has projectId link + partBrands map. Removed survey/surveyNote/parts from request. createRequest now calls useProjectStore.createDraftProject() (creates draft project + elevators in technical section). activate() calls useProjectStore.activateProject(). Seed references project IDs.
+- Renamed step2-survey.tsx -> step2-refer.tsx: referral screen showing linked project card, elevator list with survey status (completed/pending), "go to technical" button, per-elevator "survey" button (selects elevator + navigates), proceed button enabled only when all elevators surveyed.
+- Updated step3-quote.tsx: reads aggregated parts from linked project's elevators (useMemo aggregation), brand selection writes to req.partBrands. Back button -> "بازگشت به ارجاع".
+- Updated step5-activate.tsx: reads survey/parts status from project elevators; activation sets project draft->active in technical section.
+- Updated step1-request.tsx: removed saveSurvey call; button label -> "ثبت و ارجاع به فنی و مهندسی".
+- Rewrote technical-page.tsx: reads projects+elevators from shared store. Draft projects from quotations appear here. Click project/elevator -> select + navigate.
+- Rewrote elevator-page.tsx: parameterized by selectedElevatorId. If none selected -> picker screen. Survey tab (default) reads/writes useProjectStore.saveElevatorSurvey (computes parts via engine). Parts tab shows computed parts. Calculation tab reads survey.
+- Fixed Zustand selector stability: used useShallow for array-filter selectors (step2, step3, step5) to avoid infinite render loop from getProjectParts returning new array each call.
+
+Agent Browser verification (full integrated flow):
+- Technical page: shows 3 projects (پارسیان Draft, الماس Draft, سپهر فعال) + 7 elevators from shared store. 0 errors.
+- Click elevator -> elevator page parameterized (e.g. "آسانسور A1 — پروژه الماس"), survey tab default.
+- Filled survey dimensions + saved -> parts tab shows 8 computed part types with formulas.
+- Quotations PF-14024 step 1 -> proceed to step 2 referral: shows الماس project + 2 elevators with survey status.
+- Proceed button disabled until both elevators surveyed (correct gating).
+- Surveyed B2 via referral button -> back to quotation -> both surveyed -> proceed enabled.
+- Step 3: aggregated parts from both elevators shown (موتور ۲ عدد, ریل T90 with formula, etc).
+- Issued quote -> approved by customer -> step 4 contract -> filled + signed -> step 5 -> activated.
+- "پروژه با موفقیت فعال شد!" banner.
+- Returned to Technical: الماس now shows "فعال" (was Draft). Project creation + activation correctly reflected in technical section.
+- Other pages (dashboard, contacts, warehouse) intact, 0 errors.
+
+Stage Summary:
+- Project creation now happens in Technical section (shared project-store), not just in quotation.
+- Survey + parts calc moved to elevator's "برداشت اطلاعات" tab in Technical section.
+- Quotation Step 2 is now a referral screen (no survey/parts) — directs user to technical section, tracks completion.
+- Step 3 aggregates parts from linked project's elevators automatically.
+- Step 5 activates the linked project (draft->active) — reflected in technical section.
+- Full bidirectional integration: quotation <-> technical/elevator via shared store.
+- Lint clean, all GET 200, 0 runtime errors.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { Panel, StatusBadge } from "@/components/easy-lift";
 import { useQuotations } from "@/lib/quotations-store";
+import { useProjectStore } from "@/lib/project-store";
 import { PART_MAP, formatRial, formatCompact } from "@/lib/vendor-data";
 import { cn } from "@/lib/utils";
+import { useShallow } from "zustand/react/shallow";
 
 export function Step3Quote({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
@@ -28,18 +30,36 @@ export function Step3Quote({ id }: { id: string }) {
   const log = useQuotations((s) => s.log);
   const updateRequest = useQuotations((s) => s.updateRequest);
 
+  // 🔗 قطعات تجمیعی از آسانسورهای پروژه مرتبط
+  const projectElevators = useProjectStore(
+    useShallow((s) => s.elevators.filter((e) => e.projectId === req.projectId))
+  );
+  const parts = useMemo(() => {
+    const map = new Map<string, { partId: string; qty: number; formula: string }>();
+    for (const e of projectElevators) {
+      for (const p of e.parts) {
+        const cur = map.get(p.partId);
+        if (cur) cur.qty += p.qty;
+        else map.set(p.partId, { partId: p.partId, qty: p.qty, formula: p.formula });
+      }
+    }
+    return Array.from(map.values());
+  }, [projectElevators]);
+
   const [extraLabel, setExtraLabel] = useState("");
   const [extraAmount, setExtraAmount] = useState("");
   const [issued, setIssued] = useState(!!req.issuedAt);
 
-  // محاسبه قیمت‌ها
-  const partsTotal = req.parts.reduce((sum, p) => {
-    const brand = p.brandId ? PART_MAP[p.partId]?.brands.find((b) => b.id === p.brandId) : null;
+  const partsTotal = parts.reduce((sum, p) => {
+    const brandId = req.partBrands[p.partId];
+    const brand = brandId
+      ? PART_MAP[p.partId]?.brands.find((b) => b.id === brandId)
+      : null;
     if (!brand) return sum;
     return sum + brand.price * p.qty;
   }, 0);
 
-  const missingBrand = req.parts.some((p) => !p.brandId);
+  const missingBrand = parts.some((p) => !req.partBrands[p.partId]);
   const extrasTotal = req.extras.reduce((s, e) => s + e.amount, 0);
   const subtotal = partsTotal + extrasTotal;
   const profit = Math.round((subtotal * req.profitPercent) / 100);
@@ -72,13 +92,13 @@ export function Step3Quote({ id }: { id: string }) {
         <Panel padded={false} className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 p-5">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">لیست قطعات محاسبه‌شده</h3>
+              <h3 className="text-sm font-bold text-slate-900">قطعات محاسبه‌شده</h3>
               <p className="mt-0.5 text-xs text-slate-500">
-                برند هر قطعه را از میان کالاهای Vendor List انتخاب کنید
+                تجمیعی از برداشت اطلاعات آسانسورهای پروژه — برند هر قطعه را از Vendor List انتخاب کنید
               </p>
             </div>
             <StatusBadge tone={missingBrand ? "amber" : "emerald"}>
-              {missingBrand ? "انتخاب برند لازم است" : "تکمیل شد"}
+              {parts.length.toLocaleString("fa-IR")} نوع قطعه
             </StatusBadge>
           </div>
           <div className="overflow-x-auto">
@@ -86,52 +106,64 @@ export function Step3Quote({ id }: { id: string }) {
               <thead className="bg-slate-50/80">
                 <tr className="border-b border-slate-200/70">
                   <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500">قطعه</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-500">تعداد</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-500">تعداد کل</th>
                   <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500">برند</th>
                   <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-500">قیمت واحد</th>
                   <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-500">مبلغ</th>
                 </tr>
               </thead>
               <tbody>
-                {req.parts.map((p) => {
-                  const part = PART_MAP[p.partId];
-                  const brand = p.brandId
-                    ? part.brands.find((b) => b.id === p.brandId)
-                    : null;
-                  const lineTotal = brand ? brand.price * p.qty : 0;
-                  return (
-                    <tr key={p.partId} className="border-b border-slate-100 last:border-0">
-                      <td className="px-4 py-3 text-right">
-                        <div className="font-medium text-slate-800">{part.name}</div>
-                        <div className="text-[10px] text-slate-400">{p.formula}</div>
-                      </td>
-                      <td className="px-4 py-3 text-center font-bold text-slate-700">
-                        {p.qty.toLocaleString("fa-IR")}
-                        <span className="mr-1 text-[10px] font-normal text-slate-400">{part.unit}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <select
-                          value={p.brandId ?? ""}
-                          onChange={(e) => setPartBrand(id, p.partId, e.target.value || null)}
-                          className="w-full max-w-[180px] rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        >
-                          <option value="">— انتخاب برند —</option>
-                          {part.brands.map((b) => (
-                            <option key={b.id} value={b.id} disabled={!b.inStock}>
-                              {b.name} {!b.inStock ? "(ناموجود)" : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs text-slate-600">
-                        {brand ? formatCompact(brand.price) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold text-slate-800">
-                        {brand ? formatCompact(lineTotal) : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {parts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">
+                      هنوز قطعه‌ای محاسبه نشده — ابتدا برداشت اطلاعات آسانسورها را تکمیل کنید
+                    </td>
+                  </tr>
+                ) : (
+                  parts.map((p) => {
+                    const part = PART_MAP[p.partId];
+                    if (!part) return null;
+                    const brandId = req.partBrands[p.partId];
+                    const brand = brandId
+                      ? part.brands.find((b) => b.id === brandId)
+                      : null;
+                    const lineTotal = brand ? brand.price * p.qty : 0;
+                    return (
+                      <tr key={p.partId} className="border-b border-slate-100 last:border-0">
+                        <td className="px-4 py-3 text-right">
+                          <div className="font-medium text-slate-800">{part.name}</div>
+                          <div className="text-[10px] text-slate-400">{p.formula}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-700">
+                          {p.qty.toLocaleString("fa-IR")}
+                          <span className="mr-1 text-[10px] font-normal text-slate-400">{part.unit}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <select
+                            value={brandId ?? ""}
+                            onChange={(e) =>
+                              setPartBrand(id, p.partId, e.target.value || null)
+                            }
+                            className="w-full max-w-[180px] rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          >
+                            <option value="">— انتخاب برند —</option>
+                            {part.brands.map((b) => (
+                              <option key={b.id} value={b.id} disabled={!b.inStock}>
+                                {b.name} {!b.inStock ? "(ناموجود)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 text-center text-xs text-slate-600">
+                          {brand ? formatCompact(brand.price) : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-center font-semibold text-slate-800">
+                          {brand ? formatCompact(lineTotal) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -254,7 +286,7 @@ export function Step3Quote({ id }: { id: string }) {
           {!issued ? (
             <button
               onClick={issue}
-              disabled={missingBrand}
+              disabled={missingBrand || parts.length === 0}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Printer className="size-4" />
@@ -290,7 +322,7 @@ export function Step3Quote({ id }: { id: string }) {
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             <ArrowRight className="size-4" />
-            بازگشت به برداشت
+            بازگشت به ارجاع
           </button>
         </div>
       </div>

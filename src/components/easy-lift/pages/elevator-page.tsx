@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ClipboardCheck, Cog } from "lucide-react";
-import { useNav } from "@/lib/nav-store";
+import {
+  ArrowRight,
+  ClipboardCheck,
+  Cog,
+  Save,
+  CheckCircle2,
+  Info,
+  ArrowLeft,
+} from "lucide-react";
 import { Panel, StatusBadge, StatBar, EasyAiCard } from "@/components/easy-lift";
+import { useProjectStore } from "@/lib/project-store";
+import { useNav } from "@/lib/nav-store";
+import { PART_MAP, formatCompact } from "@/lib/vendor-data";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -15,8 +25,46 @@ const TABS = [
 ] as const;
 
 export function ElevatorPage() {
+  const elevId = useProjectStore((s) => s.selectedElevatorId);
+  const elevator = useProjectStore((s) =>
+    s.elevators.find((e) => e.id === elevId)
+  );
+  const project = useProjectStore((s) =>
+    s.projects.find((p) => p.id === elevator?.projectId)
+  );
   const setPage = useNav((s) => s.setPage);
-  const [tab, setTab] = useState(2);
+  const [tab, setTab] = useState(2); // default to survey tab
+
+  // No elevator selected
+  if (!elevator) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <button
+          onClick={() => setPage("technical")}
+          className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-600 transition hover:text-emerald-700"
+        >
+          <ArrowRight className="size-4" />
+          بازگشت به فنی و مهندسی
+        </button>
+        <Panel className="p-10 text-center">
+          <Cog className="mx-auto size-12 text-slate-300" />
+          <h2 className="mt-4 text-base font-bold text-slate-600">
+            آسانسوری انتخاب نشده است
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            از بخش «فنی و مهندسی» یک آسانسور را انتخاب کنید.
+          </p>
+          <button
+            onClick={() => setPage("technical")}
+            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            رفتن به فنی و مهندسی
+            <ArrowLeft className="size-4" />
+          </button>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -35,15 +83,21 @@ export function ElevatorPage() {
           </span>
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-              آسانسور A3 — پروژه پارسیان
+              {elevator.name} — {project?.name ?? ""}
             </h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              ۱۲ طبقه • ظرفیت ۱۳ نفر • در حال اجرا
+              {project?.floors.toLocaleString("fa-IR")} طبقه •{" "}
+              {elevator.survey
+                ? `برداشت تکمیل`
+                : "در انتظار برداشت اطلاعات"}
             </p>
           </div>
         </div>
-        <StatusBadge tone="emerald" className="px-3 py-1.5 text-xs">
-          ۸۵٪ پیشرفت
+        <StatusBadge
+          tone={elevator.survey ? "emerald" : "amber"}
+          className="px-3 py-1.5 text-xs"
+        >
+          {elevator.progress.toLocaleString("fa-IR")}٪ پیشرفت
         </StatusBadge>
       </div>
 
@@ -64,26 +118,38 @@ export function ElevatorPage() {
       </div>
 
       <div className="mt-6">
-        {tab === 0 && <ElevatorInfoTab />}
-        {tab === 1 && <PartsTab />}
-        {tab === 2 && <SurveyEditTab />}
-        {tab === 3 && <CalculationTab />}
+        {tab === 0 && <ElevatorInfoTab elevator={elevator} project={project} />}
+        {tab === 1 && <PartsTab elevator={elevator} />}
+        {tab === 2 && <SurveyEditTab elevator={elevator} project={project} />}
+        {tab === 3 && <CalculationTab elevator={elevator} project={project} />}
         {tab === 4 && <StandardTab />}
       </div>
     </div>
   );
 }
 
-function ElevatorInfoTab() {
+type Elevator = NonNullable<ReturnType<typeof useProjectStore.getState>["elevators"][number]>;
+type Project = NonNullable<ReturnType<typeof useProjectStore.getState>["projects"][number]>;
+
+function ElevatorInfoTab({
+  elevator,
+  project,
+}: {
+  elevator: Elevator;
+  project?: Project;
+}) {
   const fields = [
-    { l: "نوع آسانسور", v: "مسافربری" },
-    { l: "تعداد توقف", v: "۱۲" },
-    { l: "ظرفیت", v: "۱۳ نفر (۱۰۰۰ کیلوگرم)" },
-    { l: "سرعت", v: "1.6 m/s" },
-    { l: "نوع موتور", v: "گیرلس" },
-    { l: "نوع درایو", v: "اینورتر VVVF" },
-    { l: "برند موتور", v: "آرکل" },
-    { l: "نوع درب", v: "اتوماتیک تلسکوپی" },
+    { l: "کد آسانسور", v: elevator.code },
+    { l: "نام", v: elevator.name },
+    { l: "پروژه", v: project?.name ?? "—" },
+    { l: "تعداد طبقات", v: project?.floors.toLocaleString("fa-IR") ?? "—" },
+    { l: "وضعیت", v: elevator.status },
+    { l: "پیشرفت", v: `${elevator.progress.toLocaleString("fa-IR")}٪` },
+    { l: "برداشت اطلاعات", v: elevator.survey ? "تکمیل شده" : "در انتظار" },
+    {
+      l: "قطعات محاسبه‌شده",
+      v: `${elevator.parts.length.toLocaleString("fa-IR")} نوع`,
+    },
   ];
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -104,69 +170,96 @@ function ElevatorInfoTab() {
       </Panel>
       <EasyAiCard
         insights={[
-          "بر اساس مشخصات، ۱۲ عدد ریل T90 مورد نیاز است.",
-          "موتور گیرلس ۱۳ نفر با اینورتر پیشنهاد می‌شود.",
-          "هزینه تخمینی تجهیزات: ۳.۸ میلیارد ریال.",
+          "بر اساس مشخصات، قطعات موردنیاز به‌صورت خودکار محاسبه می‌شود.",
+          "پس از تکمیل برداشت، قطعات در پیش‌فاکتور تجمیع می‌شوند.",
+          "هزینه تخمینی تجهیزات در مرحله صدور پیش‌فاکتور نمایش داده می‌شود.",
         ]}
-        ctaLabel="محاسبه لوازم"
+        ctaLabel="راهنمای برداشت"
       />
     </div>
   );
 }
 
-function PartsTab() {
-  const parts = [
-    { n: "موتور گیرلس", brand: "آرکل", qty: 1, unit: "عدد", status: "تأمین شد", t: "emerald" },
-    { n: "ریل T90", brand: "ساوادکوه", qty: 12, unit: "شاخه", status: "در حال تأمین", t: "amber" },
-    { n: "تابلو فرمان", brand: "آرکل", qty: 1, unit: "عدد", status: "تأمین شد", t: "emerald" },
-    { n: "کابین", brand: "داخلی", qty: 1, unit: "عدد", status: "در حال ساخت", t: "sky" },
-    { n: "کفشک", brand: "آرکل", qty: 48, unit: "عدد", status: "کسری", t: "rose" },
-    { n: "سیم بکسل", brand: "کرج کابل", qty: 2, unit: "عدد", status: "کسری", t: "rose" },
-  ];
+function PartsTab({ elevator }: { elevator: Elevator }) {
+  const parts = elevator.parts;
   return (
     <Panel padded={false} className="overflow-hidden">
       <div className="border-b border-slate-100 p-5">
         <h3 className="text-sm font-bold text-slate-900">لیست لوازم مورد نیاز</h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          به‌صورت خودکار از مشخصات فنی آسانسور تولید شده است.
+          به‌صورت خودکار از مشخصات برداشت‌شده محاسبه شده است — این قطعات در پیش‌فاکتور تجمیع می‌شوند.
         </p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-slate-50/80">
-            <tr className="border-b border-slate-200/70">
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">نام کالا</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">برند</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">تعداد</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">واحد</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">وضعیت</th>
-            </tr>
-          </thead>
-          <tbody>
-            {parts.map((p, i) => (
-              <tr key={i} className="border-b border-slate-100 last:border-0">
-                <td className="px-4 py-3 text-right font-semibold text-slate-800">{p.n}</td>
-                <td className="px-4 py-3 text-center text-slate-600">{p.brand}</td>
-                <td className="px-4 py-3 text-center text-slate-700">
-                  {p.qty.toLocaleString("fa-IR")}
-                </td>
-                <td className="px-4 py-3 text-center text-slate-600">{p.unit}</td>
-                <td className="px-4 py-3 text-center">
-                  <StatusBadge tone={p.t as any}>{p.status}</StatusBadge>
-                </td>
+      {parts.length === 0 ? (
+        <div className="p-10 text-center text-sm text-slate-400">
+          هنوز قطعه‌ای محاسبه نشده — ابتدا تب «برداشت اطلاعات» را تکمیل کنید.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead className="bg-slate-50/80">
+              <tr className="border-b border-slate-200/70">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">قطعه</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">تعداد</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">واحد</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">فرمول محاسبه</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {parts.map((p) => {
+                const part = PART_MAP[p.partId];
+                if (!part) return null;
+                return (
+                  <tr key={p.partId} className="border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                      {part.name}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-emerald-600">
+                      {p.qty.toLocaleString("fa-IR")}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-500">{part.unit}</td>
+                    <td className="px-4 py-3 text-right text-[11px] text-slate-400">{p.formula}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Panel>
   );
 }
 
-function SurveyEditTab() {
-  const [panel, setPanel] = useState<"project" | "stages" | "form">("project");
-  const [stage, setStage] = useState(0);
-  const stages = ["چاله", "آهنکشی", "ریل", "درب", "کابین", "مکانیک", "راه‌اندازی"];
+function SurveyEditTab({
+  elevator,
+  project,
+}: {
+  elevator: Elevator;
+  project?: Project;
+}) {
+  const saveElevatorSurvey = useProjectStore((s) => s.saveElevatorSurvey);
+
+  const [survey, setSurvey] = useState(
+    elevator.survey ?? {
+      pitWidth: 170,
+      pitDepth: 1.6,
+      floorHeight: 3.2,
+      headroom: 3.8,
+    }
+  );
+  const [note, setNote] = useState(elevator.survey?.note ?? "");
+  const [saved, setSaved] = useState(!!elevator.survey?.completedAt);
+
+  const set = (k: keyof typeof survey, v: number) =>
+    setSurvey((s) => ({ ...s, [k]: v }));
+
+  const floors = project?.floors ?? 8;
+  const travel = floors * survey.floorHeight;
+
+  function save() {
+    saveElevatorSurvey(elevator.id, survey, note);
+    setSaved(true);
+  }
 
   return (
     <div>
@@ -176,206 +269,154 @@ function SurveyEditTab() {
             <span className="grid size-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
               <ClipboardCheck className="size-5" />
             </span>
-            برداشت اطلاعات
+            برداشت اطلاعات آسانسور {elevator.code}
           </h2>
           <p className="mt-1.5 text-xs text-slate-500">
-            ثبت اطلاعات فنی پروژه آسانسور
+            اطلاعات بر اساس شماتیک آسانسور ثبت شود — پس از ذخیره، قطعات به‌صورت خودکار محاسبه می‌شوند.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700">
-            ویرایش
-          </button>
-          <button className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 transition hover:bg-slate-50">
-            نمایش
-          </button>
-        </div>
+        {saved ? (
+          <StatusBadge tone="emerald" className="px-3 py-1.5">
+            <CheckCircle2 className="me-1 size-3.5" />
+            برداشت تکمیل
+          </StatusBadge>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        {/* Sidebar */}
-        <div className="lg:col-span-3">
-          <Panel padded={false} className="overflow-hidden">
-            <div className="grid grid-cols-3 border-b border-slate-100 bg-slate-50/80">
-              {(
-                [
-                  ["project", "پروژه"],
-                  ["stages", "مراحل"],
-                  ["form", "ثبت"],
-                ] as const
-              ).map(([k, l]) => (
-                <button
-                  key={k}
-                  onClick={() => setPanel(k)}
-                  className={cn(
-                    "border-b-2 py-2.5 text-xs font-medium transition",
-                    panel === k
-                      ? "border-emerald-500 text-emerald-700"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  {l}
-                </button>
-              ))}
+        {/* form */}
+        <div className="lg:col-span-7">
+          <Panel className="p-5 sm:p-6">
+            <h3 className="mb-4 text-sm font-bold text-slate-900">
+              ابعاد شماتیک آسانسور
+            </h3>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <DimField
+                label="عرض چاه"
+                value={survey.pitWidth}
+                onChange={(v) => set("pitWidth", v)}
+                unit="سانتی‌متر"
+              />
+              <DimField
+                label="عمق چاله"
+                value={survey.pitDepth}
+                onChange={(v) => set("pitDepth", v)}
+                unit="متر"
+              />
+              <DimField
+                label="ارتفاع طبقه"
+                value={survey.floorHeight}
+                onChange={(v) => set("floorHeight", v)}
+                unit="متر"
+              />
+              <DimField
+                label="ارتفاع اورهد"
+                value={survey.headroom}
+                onChange={(v) => set("headroom", v)}
+                unit="متر"
+              />
             </div>
 
-            {panel === "project" && (
-              <div className="space-y-3.5 p-4 text-xs">
-                {[
-                  ["پروژه", "پارسیان"],
-                  ["آسانسور", "A3"],
-                  ["ظرفیت", "۱۳ نفر"],
-                  ["سرعت", "1.6 m/s"],
-                  ["طبقات", "۱۲"],
-                ].map(([l, v]) => (
-                  <div key={l} className="flex justify-between">
-                    <span className="text-slate-500">{l}</span>
-                    <span className="font-semibold text-slate-800">{v}</span>
-                  </div>
-                ))}
-                <div className="pt-2">
-                  <StatBar percent={25} value="۲۵٪" barClass="bg-emerald-500" />
-                </div>
-              </div>
-            )}
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                یادداشت برداشت
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="توضیحات فنی محل پروژه..."
+                className="h-20 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
 
-            {panel === "stages" && (
-              <div className="space-y-1.5 p-3">
-                {stages.map((s, i) => (
-                  <button
-                    key={s}
-                    onClick={() => setStage(i)}
-                    className={cn(
-                      "w-full rounded-lg px-3 py-2.5 text-right text-xs transition",
-                      stage === i
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    {(i + 1).toLocaleString("fa-IR")}- {s}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-sky-50 p-3 text-xs text-sky-700">
+              <Info className="mt-0.5 size-4 shrink-0" />
+              <span>
+                ارتفاع کل سفر:{" "}
+                <strong>{travel.toLocaleString("fa-IR")} متر</strong> — پس از
+                ذخیره، قطعات با فرمول‌های ثبت‌شده محاسبه و در پیش‌فاکتور تجمیع
+                می‌شوند.
+              </span>
+            </div>
 
-            {panel === "form" && (
-              <div className="space-y-3 p-4">
-                {["عرض چاله", "عمق چاله", "ارتفاع پیت", "ارتفاع طبقه"].map((l) => (
-                  <div key={l}>
-                    <label className="mb-1.5 block text-[11px] text-slate-500">
-                      {l}
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                    />
-                  </div>
-                ))}
-                <button className="w-full rounded-lg bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700">
-                  ثبت اطلاعات
-                </button>
-              </div>
-            )}
+            <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
+              <button
+                onClick={save}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Save className="size-4" />
+                ذخیره برداشت و محاسبه قطعات
+              </button>
+            </div>
           </Panel>
         </div>
 
-        {/* Schematic */}
-        <div className="lg:col-span-9">
-          <Panel padded={false} className="flex h-full min-h-[420px] flex-col">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">شماتیک آسانسور</h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  انتخاب هر فیلد، محل آن را روی نقشه مشخص می‌کند.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50">
-                  بازنشانی
-                </button>
-                <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50">
-                  بزرگنمایی
-                </button>
-              </div>
+        {/* schematic + summary */}
+        <div className="space-y-5 lg:col-span-5">
+          <Panel padded={false} className="overflow-hidden">
+            <div className="border-b border-slate-100 px-5 py-3.5">
+              <h3 className="text-sm font-bold text-slate-900">شماتیک آسانسور</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                نمایی گرافیکی از ابعاد واردشده
+              </p>
             </div>
-            <div className="flex flex-1 items-center justify-center rounded-b-2xl bg-slate-100 p-6">
-              <div className="grid h-full w-full place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-white text-center">
+            <div className="flex items-center justify-center bg-slate-100 p-6">
+              <div className="grid h-64 w-full max-w-xs place-items-center rounded-xl border-2 border-dashed border-slate-300 bg-white text-center">
                 <div>
-                  <ClipboardCheck className="mx-auto size-16 text-slate-300" />
-                  <h3 className="mt-4 text-base font-bold text-slate-500">
-                    محل نمایش شماتیک آسانسور
+                  <ClipboardCheck className="mx-auto size-14 text-slate-300" />
+                  <h3 className="mt-3 text-sm font-bold text-slate-500">
+                    شماتیک آسانسور
                   </h3>
-                  <p className="mt-2 text-xs text-slate-400">
-                    شماتیک بر اساس اطلاعات برداشت‌شده تکمیل می‌شود.
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    عرض {survey.pitWidth.toLocaleString("fa-IR")}cm • سفر{" "}
+                    {travel.toLocaleString("fa-IR")}m
                   </p>
                 </div>
               </div>
             </div>
           </Panel>
-        </div>
-      </div>
 
-      {/* Bottom row */}
-      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel className="p-4">
-          <h3 className="mb-3 text-sm font-bold text-slate-900">یادداشت‌ها</h3>
-          <textarea
-            className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-xs outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            placeholder="توضیحات مرحله برداشت ..."
-          />
-        </Panel>
-        <Panel className="p-4">
-          <h3 className="mb-3 text-sm font-bold text-slate-900">فعالیت‌های اخیر</h3>
-          <div className="space-y-3 text-xs">
-            <div className="flex gap-2.5">
-              <span className="mt-1 size-2 shrink-0 rounded-full bg-emerald-500" />
-              <div>
-                <div className="font-medium text-slate-700">مرحله چاله ثبت شد</div>
-                <div className="text-[11px] text-slate-400">امروز ۱۰:۳۵</div>
+          <Panel className="p-5">
+            <h3 className="text-sm font-bold text-slate-900">خلاصه</h3>
+            <div className="mt-4 space-y-3 text-xs">
+              <Row label="پروژه" value={project?.name ?? "—"} />
+              <Row label="طبقات" value={floors.toLocaleString("fa-IR")} />
+              <Row label="ارتفاع سفر" value={`${travel.toLocaleString("fa-IR")} م`} strong />
+              <div className="border-t border-slate-100 pt-3">
+                <StatBar
+                  percent={saved ? 25 : 0}
+                  label="پیشرفت برداشت"
+                  value={saved ? "۲۵٪" : "۰٪"}
+                  barClass="bg-emerald-500"
+                />
               </div>
             </div>
-            <div className="flex gap-2.5">
-              <span className="mt-1 size-2 shrink-0 rounded-full bg-sky-500" />
-              <div>
-                <div className="font-medium text-slate-700">اطلاعات پروژه ویرایش شد</div>
-                <div className="text-[11px] text-slate-400">امروز ۰۹:۲۰</div>
-              </div>
-            </div>
-          </div>
-        </Panel>
-        <Panel className="p-4">
-          <h3 className="mb-3 text-sm font-bold text-slate-900">فایل‌های پروژه</h3>
-          <div className="space-y-2">
-            {[
-              { n: "نقشه اولیه.pdf", c: "text-rose-500" },
-              { n: "عکس چاله.jpg", c: "text-emerald-600" },
-            ].map((f) => (
-              <div
-                key={f.n}
-                className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
-              >
-                <span className="text-xs text-slate-700">{f.n}</span>
-                <button className="text-xs font-medium text-emerald-600">
-                  مشاهده
-                </button>
-              </div>
-            ))}
-          </div>
-        </Panel>
+          </Panel>
+        </div>
       </div>
     </div>
   );
 }
 
-function CalculationTab() {
-  const calcs = [
-    { l: "ارتفاع کل سطر", v: "۴۸ متر", d: "۱۲ طبقه × ۴ متر" },
-    { l: "وزن کابین", v: "۱۲۰۰ کیلوگرم", d: "ظرفیت ۱۰۰۰ کیلوگرم" },
-    { l: "وزن پادوزن", v: "۱۶۰۰ کیلوگرم", d: "کابین + ۰.۵ ظرفیت" },
-    { l: "نیروی موتور", v: "۱۱ کیلووات", d: "گیرلس VVVF" },
-    { l: "تعداد ریل", v: "۱۲ شاخه", d: "T90" },
-    { l: "طول سیم بکسل", v: "۹۶ متر", d: "۲ × ارتفاع سفر" },
-  ];
+function CalculationTab({
+  elevator,
+  project,
+}: {
+  elevator: Elevator;
+  project?: Project;
+}) {
+  const survey = elevator.survey;
+  const floors = project?.floors ?? 8;
+  const travel = survey ? floors * survey.floorHeight : 0;
+  const calcs = survey
+    ? [
+        { l: "ارتفاع کل سفر", v: `${travel.toLocaleString("fa-IR")} متر`, d: `${floors.toLocaleString("fa-IR")} طبقه × ${survey.floorHeight}م` },
+        { l: "طول ریل کل", v: `${((travel + survey.pitDepth + survey.headroom) * 2).toLocaleString("fa-IR")} متر`, d: "۲ مسیر × (سفر + چاله + اورهد)" },
+        { l: "طول سیم بکسل", v: `${(travel * 2).toLocaleString("fa-IR")} متر`, d: "۲ × ارتفاع سفر" },
+        { l: "تعداد درب", v: floors.toLocaleString("fa-IR"), d: "به ازای هر طبقه" },
+        { l: "قطعات محاسبه‌شده", v: `${elevator.parts.length.toLocaleString("fa-IR")} نوع`, d: "از فرمول‌های ثبت‌شده" },
+      ]
+    : [];
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2">
@@ -383,26 +424,28 @@ function CalculationTab() {
           <h3 className="mb-4 text-sm font-bold text-slate-900">
             نتیجه محاسبات فنی
           </h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {calcs.map((c) => (
-              <div key={c.l} className="rounded-xl border border-slate-200 p-3.5">
-                <div className="text-[11px] text-slate-500">{c.l}</div>
-                <div className="mt-1 text-base font-bold text-slate-900">
-                  {c.v}
-                </div>
-                {c.d ? (
+          {!survey ? (
+            <div className="p-8 text-center text-sm text-slate-400">
+              ابتدا تب «برداشت اطلاعات» را تکمیل کنید.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {calcs.map((c) => (
+                <div key={c.l} className="rounded-xl border border-slate-200 p-3.5">
+                  <div className="text-[11px] text-slate-500">{c.l}</div>
+                  <div className="mt-1 text-base font-bold text-slate-900">{c.v}</div>
                   <div className="mt-0.5 text-[11px] text-slate-400">{c.d}</div>
-                ) : null}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Panel>
       </div>
       <EasyAiCard
         insights={[
           "محاسبات با استاندارد ISO 4190 منطبق است.",
-          "پادوزن ۱۶۰۰ کیلوگرم برای تعادل بهینه پیشنهاد می‌شود.",
-          "نیاز به ۲ شاخه ریل اضافی برای ایمنی.",
+          "پادوزن مناسب برای تعادل بهینه پیشنهاد می‌شود.",
+          "قطعات محاسبه‌شده در پیش‌فاکتور تجمیع می‌شوند.",
         ]}
         ctaLabel="اعمال محاسبات"
       />
@@ -448,3 +491,61 @@ function StandardTab() {
     </div>
   );
 }
+
+function DimField({
+  label,
+  value,
+  onChange,
+  unit,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  unit: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="number"
+          step="0.1"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pl-12 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+        />
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-slate-500">{label}</span>
+      <span
+        className={cn(
+          "text-slate-700",
+          strong ? "font-bold text-emerald-600" : "font-semibold"
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+void formatCompact;

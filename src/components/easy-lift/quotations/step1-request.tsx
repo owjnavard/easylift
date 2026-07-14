@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 export function Step1Request({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
-  const saveSurvey = useQuotations((s) => s.saveSurvey);
   const updateRequest = useQuotations((s) => s.updateRequest);
   const goToStage = useQuotations((s) => s.goToStage);
 
@@ -49,14 +48,6 @@ export function Step1Request({ id }: { id: string }) {
 
   function next() {
     save();
-    // اگر هنوز برداشت انجام نشده، یک survey پیش‌فرض می‌سازیم
-    if (!req.survey) {
-      saveSurvey(
-        id,
-        { pitWidth: 170, pitDepth: 1.6, floorHeight: 3.2, headroom: 3.8 },
-        ""
-      );
-    }
     goToStage(id, 2);
   }
 
@@ -65,7 +56,7 @@ export function Step1Request({ id }: { id: string }) {
       <div className="mb-5">
         <h3 className="text-base font-bold text-slate-900">ثبت درخواست پیش‌فاکتور</h3>
         <p className="mt-1 text-xs text-slate-500">
-          اطلاعات اولیه ساختمان و درخواست‌کننده وارد شود. پس از ثبت، یک پروژه موقت (Draft) ایجاد می‌شود.
+          اطلاعات اولیه ساختمان وارد شود. پس از ثبت، یک پروژه موقت (Draft) به همراه آسانسورهای آن در بخش «فنی و مهندسی» ایجاد می‌گردد.
         </p>
       </div>
 
@@ -181,7 +172,7 @@ export function Step1Request({ id }: { id: string }) {
           disabled={!canProceed}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          ثبت و ارجاع به مدیر فنی
+          ثبت و ارجاع به فنی و مهندسی
           <ArrowLeft className="size-4" />
         </button>
       </div>
