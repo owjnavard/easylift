@@ -13,7 +13,7 @@ import { Panel } from "@/components/easy-lift";
 import { useQuotations, type ContractData } from "@/lib/quotations-store";
 import { formatCompact } from "@/lib/vendor-data";
 
-export function Step4Contract({ id }: { id: string }) {
+export function Step3Contract({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
   const saveContract = useQuotations((s) => s.saveContract);
   const signContract = useQuotations((s) => s.signContract);
@@ -39,7 +39,6 @@ export function Step4Contract({ id }: { id: string }) {
   function save() {
     saveContract(id, form);
   }
-
   function sign() {
     save();
     signContract(id);
@@ -129,17 +128,12 @@ export function Step4Contract({ id }: { id: string }) {
         <Panel className="p-5">
           <h3 className="text-sm font-bold text-slate-900">اطلاعات مالی</h3>
           <div className="mt-4 space-y-3 text-xs">
-            <Row label="مبلغ قرارداد" value={formatCompact(reqFinalTotal(req))} />
+            <Row label="مشتری" value={req.customer} />
+            <Row label="تعداد آسانسور" value={req.building.elevatorCount.toLocaleString("fa-IR")} />
             <Row
               label="پیش‌پرداخت"
-              value={
-                form.prepayment
-                  ? formatCompact(form.prepayment)
-                  : "تعیین نشده"
-              }
+              value={form.prepayment ? formatCompact(form.prepayment) : "تعیین نشده"}
             />
-            <Row label="تعداد آسانسور" value={req.building.elevatorCount.toLocaleString("fa-IR")} />
-            <Row label="مشتری" value={req.customer} />
           </div>
         </Panel>
 
@@ -167,7 +161,7 @@ export function Step4Contract({ id }: { id: string }) {
             {signed ? "امضا شده" : "ارسال برای امضای الکترونیکی"}
           </button>
           <button
-            onClick={() => goToStage(id, signed ? 5 : 3)}
+            onClick={() => goToStage(id, signed ? 4 : 2)}
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
           >
             {signed ? "تبدیل به پروژه اجرایی" : "بازگشت به پیش‌فاکتور"}
@@ -175,7 +169,7 @@ export function Step4Contract({ id }: { id: string }) {
           </button>
           {!signed ? (
             <button
-              onClick={() => goToStage(id, 3)}
+              onClick={() => goToStage(id, 2)}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               <ArrowRight className="size-4" />
@@ -188,23 +182,12 @@ export function Step4Contract({ id }: { id: string }) {
   );
 }
 
-function reqFinalTotal(req: any): number {
-  // تقریب از data موجود
-  return 0; // placeholder; in real app از store محاسبه می‌شود
-}
-
 const inputCls =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100";
 const taCls =
   "w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100";
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="mb-1.5 block text-xs font-semibold text-slate-600">

@@ -150,3 +150,34 @@ Stage Summary:
 - Step 5 activates the linked project (draft->active) — reflected in technical section.
 - Full bidirectional integration: quotation <-> technical/elevator via shared store.
 - Lint clean, all GET 200, 0 runtime errors.
+
+---
+Task ID: workflow-restructure
+Agent: main
+Task: History as project tab + history popup in quotations + delete step 2 + waiting-for-survey state + vertical quote layout
+
+Work Log:
+- Renumbered quotation stages 1|2|3|4 (removed old stage 2 "ارجاع"). New: 1=ثبت درخواست, 2=صدور پیش‌فاکتور, 3=قرارداد, 4=اجرایی. Updated STAGE_LABELS/STAGE_SHORT, seed data (r1 stage 2, r3 stage 4), approveByCustomer/saveContract/signContract/activate stage refs (3/4), workflow-stepper (4 stages, "از ۴"), request-list-view legend (4 stages), FilterSelect options, stageTone mapping.
+- Added ProjectHistoryEntry + history field to project-store Project. Populated in seed (پارسیان: create+survey events; سپهر: create+survey+activate), createDraftProject, saveElevatorSurvey (logs survey event to project), activateProject (logs activation).
+- Built history-dialog.tsx: shadcn Dialog popup with timeline of all quotation history events (action, detail, actor, stage, timeAgo). Accessible via header button in all stages.
+- Rewrote workflow-view: removed sidebar HistoryPanel, added "تاریخچه" button with count badge in header (visible all stages) opening HistoryDialog. Full-width step content (no sidebar). Maps stages 1-4 to Step1-Step4.
+- Deleted step2-refer.tsx, step3-quote.tsx, step4-contract.tsx, step5-activate.tsx, history-panel.tsx.
+- Built step2-quote.tsx (new stage 2 = صدور پیش‌فاکتور): 
+  * Waiting-for-survey state when not all elevators surveyed: "در انتظار برداشت اطلاعات" banner, progress bar, elevators list with per-elevator survey status + "برداشت اطلاعات"/"ویرایش برداشت" buttons + "رفتن به فنی و مهندسی".
+  * When all surveyed: vertical stacked layout — (1) قطعات محاسبه‌شده panel (full width table with brand dropdowns), (2) هزینه‌های جانبی panel, (3) محاسبه قیمت نهایی panel (2-col: breakdown + final total + actions).
+- Built step3-contract.tsx (renamed from old step4): contract form, back -> stage 2.
+- Built step4-activate.tsx (renamed from old step5): summary + activate, back -> stage 3.
+- Updated step1-request.tsx: proceed -> stage 2 directly, button label "ثبت و ادامه به صدور پیش‌فاکتور".
+- Rewrote project-page.tsx: reads from useProjectStore (selectedProjectId), 6 tabs (added "تاریخچه پروژه" as tab 6). ProjectHistoryTab component shows timeline of project.history events. Parameterized all data (no more hardcoded "پارسیان").
+
+Agent Browser verification:
+- List view: 4-stage legend (ثبت درخواست→صدور→قرارداد→اجرایی), no "ارجاع". Filter has 4 stage options.
+- PF-14024 step 1 -> proceed -> step 2 shows "در انتظار برداشت اطلاعات" with 2 elevators (1 pending, 1 done after survey).
+- History popup: clicked "تاریخچه" button in header -> Dialog opens "تاریخچه پیش‌فاکتور PF-14024" with event "ثبت درخواست پیش‌فاکتور توسط احمدی • مرحله ۱". Closes with Esc. Works in all stages.
+- Surveyed both elevators (A1 + B2) via step 2's per-elevator buttons -> returned to step 2 -> now shows parts in vertical stacked layout: قطعات محاسبه‌شده (موتور گیرلس) -> هزینه‌های جانبی -> محاسبه قیمت نهایی. Order confirmed via heading extraction.
+- Project page: 6 tabs including "تاریخچه پروژه". Clicked history tab -> shows "ایجاد پروژه موقت از پیش‌فاکتور (توسط احمدی)" + "تکمیل برداشت اطلاعات ۴ آسانسور (توسط مدیر فنی)" timeline.
+- Lint clean, all GET 200, 0 runtime errors.
+
+Stage Summary:
+- 4 changes implemented per request: (1) history tab in project page, (2) history popup (button+Dialog) in quotations all stages, (3) step 2 (ارجاع) deleted entirely, (4) step 2 (صدور) shows "در انتظار برداشت" state + vertical stacked layout (قطعات→هزینه‌های جانبی→محاسبه قیمت نهایی).
+- Workflow now 4 stages. Bidirectional integration with technical section preserved.

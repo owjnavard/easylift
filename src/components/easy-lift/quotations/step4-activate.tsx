@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   ArrowRight,
   Rocket,
@@ -17,8 +16,9 @@ import { useQuotations } from "@/lib/quotations-store";
 import { useProjectStore } from "@/lib/project-store";
 import { PART_MAP, formatCompact } from "@/lib/vendor-data";
 import { useShallow } from "zustand/react/shallow";
+import { useMemo } from "react";
 
-export function Step5Activate({ id }: { id: string }) {
+export function Step4Activate({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
   const activate = useQuotations((s) => s.activate);
   const goToStage = useQuotations((s) => s.goToStage);
@@ -91,19 +91,19 @@ export function Step5Activate({ id }: { id: string }) {
               />
               <SummaryItem
                 icon={ClipboardCheck}
-                label="مرحله ۲ — برداشت (در فنی و مهندسی)"
+                label="برداشت (در فنی و مهندسی)"
                 value={`${surveyedCount.toLocaleString("fa-IR")} از ${elevators.length.toLocaleString("fa-IR")} آسانسور برداشت شد • ${parts.length.toLocaleString("fa-IR")} نوع قطعه محاسبه شد`}
                 done={surveyedCount === elevators.length}
               />
               <SummaryItem
                 icon={Cog}
-                label="مرحله ۳ — پیش‌فاکتور"
+                label="مرحله ۲ — پیش‌فاکتور"
                 value={`${parts.length.toLocaleString("fa-IR")} نوع قطعه • مبلغ نهایی ${formatCompact(finalTotal)}`}
                 done={!!req.issuedAt}
               />
               <SummaryItem
                 icon={FileSignature}
-                label="مرحله ۴ — قرارداد"
+                label="مرحله ۳ — قرارداد"
                 value={
                   req.contract
                     ? `مدت: ${req.contract.duration} • ${req.contractSignedAt ? "امضا شده" : "در انتظار امضا"}`
@@ -113,7 +113,7 @@ export function Step5Activate({ id }: { id: string }) {
               />
               <SummaryItem
                 icon={Rocket}
-                label="مرحله ۵ — فعال‌سازی"
+                label="مرحله ۴ — فعال‌سازی"
                 value={isActive ? "پروژه فعال شد" : "در انتظار فعال‌سازی"}
                 done={isActive}
               />
@@ -173,7 +173,7 @@ export function Step5Activate({ id }: { id: string }) {
               </div>
             )}
             <button
-              onClick={() => goToStage(id, 4)}
+              onClick={() => goToStage(id, 3)}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               <ArrowRight className="size-4" />

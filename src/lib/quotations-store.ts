@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { useProjectStore } from "./project-store";
 
-export type Stage = 1 | 2 | 3 | 4 | 5;
+export type Stage = 1 | 2 | 3 | 4;
 export type RequesterType = "marketer" | "customer" | "internal";
 
 export interface ExtraCost {
@@ -41,17 +41,17 @@ export interface QuotationRequest {
   buildingType: string;
   building: { floors: number; unitsPerFloor: number; elevatorCount: number };
   createdAt: string;
-  // مرحله ۳ — برندها و هزینه‌ها روی پیش‌فاکتور
+  // مرحله ۲ — برندها و هزینه‌ها روی پیش‌فاکتور
   partBrands: Record<string, string>; // partId -> brandId
   extras: ExtraCost[];
   profitPercent: number;
   discountAmount: number;
   issuedAt?: string;
   approvedByCustomer: boolean;
-  // مرحله ۴
+  // مرحله ۳
   contract?: ContractData;
   contractSignedAt?: string;
-  // مرحله ۵
+  // مرحله ۴
   status: "draft" | "active";
   activatedAt?: string;
   history: HistoryEntry[];
@@ -87,19 +87,19 @@ function seed(): QuotationRequest[] {
     extras: [],
     profitPercent: 18,
     discountAmount: 0,
-    approvedByCustomer: stage >= 4,
+    approvedByCustomer: stage >= 3,
     status,
     history: [
       { id: uid(), at: now(), actor: "احمدی", action: "ثبت درخواست پیش‌فاکتور", stage: 1 },
     ],
   });
 
-  const r1 = mk("q-14025", "PF-14025", 3, "p-parsian", "شرکت پارسیان", 12, 4, "marketer");
-  r1.history.push({ id: uid(), at: now(), actor: "مدیر فنی", action: "تکمیل برداشت اطلاعات آسانسورها", stage: 2 });
+  const r1 = mk("q-14025", "PF-14025", 2, "p-parsian", "شرکت پارسیان", 12, 4, "marketer");
+  r1.history.push({ id: uid(), at: now(), actor: "مدیر فنی", action: "تکمیل برداشت اطلاعات آسانسورها", stage: 1 });
 
   const r2 = mk("q-14024", "PF-14024", 1, "p-almas", "برج الماس", 8, 2, "internal");
 
-  const r3 = mk("q-14023", "PF-14023", 5, "p-sepehr", "سپهر گروپ", 6, 1, "customer", "active");
+  const r3 = mk("q-14023", "PF-14023", 4, "p-sepehr", "سپهر گروپ", 6, 1, "customer", "active");
   r3.activatedAt = now();
 
   return [r1, r2, r3];
@@ -241,7 +241,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
           ? {
               ...r,
               approvedByCustomer: true,
-              stage: Math.max(r.stage, 4) as Stage,
+              stage: Math.max(r.stage, 3) as Stage,
               history: [
                 ...r.history,
                 {
@@ -249,7 +249,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
                   at: now(),
                   actor: "مشتری",
                   action: "تأیید پیش‌فاکتور توسط مشتری",
-                  stage: 4,
+                  stage: 3,
                 },
               ],
             }
@@ -265,7 +265,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
           ? {
               ...r,
               contract,
-              stage: Math.max(r.stage, 4) as Stage,
+              stage: Math.max(r.stage, 3) as Stage,
               history: [
                 ...r.history,
                 {
@@ -274,7 +274,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
                   actor: "احمدی",
                   action: "ثبت قرارداد",
                   detail: `مدت اجرا: ${contract.duration}`,
-                  stage: 4,
+                  stage: 3,
                 },
               ],
             }
@@ -298,7 +298,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
                   at: now(),
                   actor: "مشتری",
                   action: "امضای الکترونیکی قرارداد",
-                  stage: 4,
+                  stage: 3,
                 },
               ],
             }
@@ -317,7 +317,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
           ? {
               ...r,
               status: "active",
-              stage: 5,
+              stage: 4,
               activatedAt: now(),
               history: [
                 ...r.history,
@@ -327,7 +327,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
                   actor: "سیستم",
                   action: "تبدیل به پروژه اجرایی فعال",
                   detail: "پروژه از Draft به Active تغییر یافت",
-                  stage: 5,
+                  stage: 4,
                 },
               ],
             }
@@ -357,18 +357,16 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
 
 export const STAGE_LABELS: Record<Stage, string> = {
   1: "ثبت درخواست",
-  2: "ارجاع به فنی",
-  3: "صدور پیش‌فاکتور",
-  4: "تبدیل به قرارداد",
-  5: "پروژه اجرایی",
+  2: "صدور پیش‌فاکتور",
+  3: "تبدیل به قرارداد",
+  4: "پروژه اجرایی",
 };
 
 export const STAGE_SHORT: Record<Stage, string> = {
   1: "درخواست",
-  2: "ارجاع",
-  3: "صدور",
-  4: "قرارداد",
-  5: "اجرایی",
+  2: "صدور",
+  3: "قرارداد",
+  4: "اجرایی",
 };
 
 export const REQUESTER_LABELS: Record<RequesterType, string> = {

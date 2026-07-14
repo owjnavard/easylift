@@ -1,21 +1,21 @@
 "use client";
 
-import { ArrowRight, Code2, User } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Code2, User, History } from "lucide-react";
 import { WorkflowStepper } from "./workflow-stepper";
-import { HistoryPanel } from "./history-panel";
+import { HistoryDialog } from "./history-dialog";
 import { Step1Request } from "./step1-request";
-import { Step2Refer } from "./step2-refer";
-import { Step3Quote } from "./step3-quote";
-import { Step4Contract } from "./step4-contract";
-import { Step5Activate } from "./step5-activate";
+import { Step2Quote } from "./step2-quote";
+import { Step3Contract } from "./step3-contract";
+import { Step4Activate } from "./step4-activate";
 import { useQuotations } from "@/lib/quotations-store";
 
 export function WorkflowView({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
   const select = useQuotations((s) => s.select);
   const goToStage = useQuotations((s) => s.goToStage);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  // بیشترین مرحله‌ای که پروژه به آن رسیده (برای قفل کردن مراحل بعدی)
   const maxReached = req.stage;
 
   return (
@@ -51,30 +51,40 @@ export function WorkflowView({ id }: { id: string }) {
               </div>
             </div>
           </div>
+
+          {/* history button (all stages) */}
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 lg:self-auto"
+          >
+            <History className="size-3.5 text-emerald-600" />
+            تاریخچه
+            <span className="rounded-full bg-emerald-50 px-1.5 text-[10px] font-bold text-emerald-600">
+              {req.history.length.toLocaleString("fa-IR")}
+            </span>
+          </button>
         </div>
       </header>
 
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
-        {/* stepper */}
         <WorkflowStepper
           current={req.stage}
           maxReached={maxReached}
           onJump={(s) => goToStage(id, s)}
         />
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="min-w-0 lg:col-span-2">
-            {req.stage === 1 && <Step1Request id={id} />}
-            {req.stage === 2 && <Step2Refer id={id} />}
-            {req.stage === 3 && <Step3Quote id={id} />}
-            {req.stage === 4 && <Step4Contract id={id} />}
-            {req.stage === 5 && <Step5Activate id={id} />}
-          </div>
-          <div>
-            <HistoryPanel id={id} />
-          </div>
-        </div>
+        {/* full-width step content (no sidebar) */}
+        {req.stage === 1 && <Step1Request id={id} />}
+        {req.stage === 2 && <Step2Quote id={id} />}
+        {req.stage === 3 && <Step3Contract id={id} />}
+        {req.stage === 4 && <Step4Activate id={id} />}
       </div>
+
+      <HistoryDialog
+        id={id}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
     </div>
   );
 }

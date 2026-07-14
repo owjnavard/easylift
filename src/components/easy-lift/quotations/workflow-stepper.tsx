@@ -4,7 +4,7 @@ import { Check, ChevronLeft } from "lucide-react";
 import { STAGE_LABELS, type Stage } from "@/lib/quotations-store";
 import { cn } from "@/lib/utils";
 
-const STAGES: Stage[] = [1, 2, 3, 4, 5];
+const STAGES: Stage[] = [1, 2, 3, 4];
 
 export function WorkflowStepper({
   current,
@@ -76,7 +76,7 @@ export function WorkflowStepper({
       <div className="sm:hidden">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-semibold text-emerald-700">
-            مرحله {current.toLocaleString("fa-IR")} از ۵
+            مرحله {current.toLocaleString("fa-IR")} از ۴
           </span>
           <span className="text-xs text-slate-500">{STAGE_LABELS[current]}</span>
         </div>

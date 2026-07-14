@@ -172,7 +172,7 @@ export function Step1Request({ id }: { id: string }) {
           disabled={!canProceed}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          ثبت و ارجاع به فنی و مهندسی
+          ثبت و ادامه به صدور پیش‌فاکتور
           <ArrowLeft className="size-4" />
         </button>
       </div>

@@ -30,6 +30,14 @@ export interface Elevator {
 
 export type ProjectStatus = "draft" | "active";
 
+export interface ProjectHistoryEntry {
+  id: string;
+  at: string;
+  actor: string;
+  action: string;
+  detail?: string;
+}
+
 export interface Project {
   id: string;
   code: string; // P-۱۴۰۵۰۱
@@ -43,6 +51,7 @@ export interface Project {
   status: ProjectStatus;
   quotationId?: string;
   createdAt: string;
+  history: ProjectHistoryEntry[];
 }
 
 const now = () => new Date().toISOString();
@@ -90,10 +99,14 @@ function seed(): { projects: Project[]; elevators: Elevator[] } {
     status,
     quotationId,
     createdAt: now(),
+    history: [
+      { id: uid(), at: now(), actor: "احمدی", action: "ایجاد پروژه موقت از پیش‌فاکتور", detail: `کد پیش‌فاکتور: ${quotationId.toUpperCase()}` },
+    ],
   });
 
-  // پارسیان — draft، تمام آسانسورها برداشت شده (برای PF-14025 مرحله ۳)
+  // پارسیان — draft، تمام آسانسورها برداشت شده (برای PF-14025 مرحله ۲)
   const p1 = mk("p-parsian", "P-۱۴۰۵۰۱", "پروژه پارسیان", "شرکت پارسیان", 12, 4, "draft", "q-14025");
+  p1.history.push({ id: uid(), at: now(), actor: "مدیر فنی", action: "تکمیل برداشت اطلاعات ۴ آسانسور" });
   projects.push(p1);
   const p1Elev = makeElevators(p1.id, 4);
   p1Elev.forEach((e) => {
@@ -119,8 +132,10 @@ function seed(): { projects: Project[]; elevators: Elevator[] } {
   projects.push(p2);
   elevators.push(...makeElevators(p2.id, 2));
 
-  // سپهر — active (برای PF-14023 مرحله ۵)
+  // سپهر — active (برای PF-14023 مرحله ۴)
   const p3 = mk("p-sepehr", "P-۱۴۰۵۰۳", "پروژه سپهر", "سپهر گروپ", 6, 1, "active", "q-14023");
+  p3.history.push({ id: uid(), at: now(), actor: "مدیر فنی", action: "تکمیل برداشت اطلاعات آسانسور" });
+  p3.history.push({ id: uid(), at: now(), actor: "سیستم", action: "تبدیل به پروژه اجرایی فعال", detail: "وضعیت از Draft به Active تغییر یافت" });
   projects.push(p3);
   const p3Elev = makeElevators(p3.id, 1);
   p3Elev.forEach((e) => {
@@ -195,6 +210,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       status: "draft",
       quotationId: input.quotationId,
       createdAt: now(),
+      history: [
+        { id: uid(), at: now(), actor: "سیستم", action: "ایجاد پروژه موقت از پیش‌فاکتور", detail: `${input.elevatorCount.toLocaleString("fa-IR")} آسانسور` },
+      ],
     };
     const elevators = makeElevators(id, input.elevatorCount);
     set((s) => ({
@@ -218,31 +236,72 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     return Array.from(map.values());
   },
   saveElevatorSurvey: (elevatorId, survey, note) =>
-    set((s) => ({
-      elevators: s.elevators.map((e) => {
-        if (e.id !== elevatorId) return e;
-        const project = s.projects.find((p) => p.id === e.projectId);
-        const parts = computeParts(
-          {
-            floors: project?.floors ?? 8,
-            unitsPerFloor: project?.unitsPerFloor ?? 4,
-            elevatorCount: 1,
-          },
-          survey
-        );
-        return {
-          ...e,
-          survey: { ...survey, note, completedAt: now() },
-          parts,
-          status: "calculated" as ElevatorStatus,
-          progress: Math.max(e.progress, 25),
-        };
-      }),
-    })),
+    set((s) => {
+      const elev = s.elevators.find((e) => e.id === elevatorId);
+      const projectId = elev?.projectId;
+      const project = projectId
+        ? s.projects.find((p) => p.id === projectId)
+        : undefined;
+      const parts = computeParts(
+        {
+          floors: project?.floors ?? 8,
+          unitsPerFloor: project?.unitsPerFloor ?? 4,
+          elevatorCount: 1,
+        },
+        survey
+      );
+      return {
+        elevators: s.elevators.map((e) =>
+          e.id === elevatorId
+            ? {
+                ...e,
+                survey: { ...survey, note, completedAt: now() },
+                parts,
+                status: "calculated" as ElevatorStatus,
+                progress: Math.max(e.progress, 25),
+              }
+            : e
+        ),
+        projects: projectId
+          ? s.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    history: [
+                      ...p.history,
+                      {
+                        id: uid(),
+                        at: now(),
+                        actor: "مدیر فنی",
+                        action: `ثبت برداشت اطلاعات ${elev?.name ?? "آسانسور"}`,
+                        detail: `${parts.length.toLocaleString("fa-IR")} نوع قطعه محاسبه شد`,
+                      },
+                    ],
+                  }
+                : p
+            )
+          : s.projects,
+      };
+    }),
   activateProject: (projectId) =>
     set((s) => ({
       projects: s.projects.map((p) =>
-        p.id === projectId ? { ...p, status: "active" } : p
+        p.id === projectId
+          ? {
+              ...p,
+              status: "active",
+              history: [
+                ...p.history,
+                {
+                  id: uid(),
+                  at: now(),
+                  actor: "سیستم",
+                  action: "تبدیل به پروژه اجرایی فعال",
+                  detail: "وضعیت از Draft به Active تغییر یافت",
+                },
+              ],
+            }
+          : p
       ),
     })),
 }));

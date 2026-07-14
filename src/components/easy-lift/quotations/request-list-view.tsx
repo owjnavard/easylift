@@ -80,7 +80,7 @@ export function RequestListView() {
       align: "center",
       render: (r) => (
         <StatusBadge tone={stageTone(r.stage)}>
-          {r.stage.toLocaleString("fa-IR")} — {STAGE_SHORT[r.stage as 1 | 2 | 3 | 4 | 5]}
+          {r.stage.toLocaleString("fa-IR")} — {STAGE_SHORT[r.stage as 1 | 2 | 3 | 4]}
         </StatusBadge>
       ),
     },
@@ -132,13 +132,13 @@ export function RequestListView() {
         {/* workflow legend */}
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 text-xs">
           <span className="font-semibold text-slate-600">گردش‌کار:</span>
-          {([1, 2, 3, 4, 5] as const).map((s, i) => (
+          {([1, 2, 3, 4] as const).map((s, i) => (
             <span key={s} className="flex items-center gap-1.5">
               <span className="grid size-5 place-items-center rounded-full bg-emerald-50 text-[10px] font-bold text-emerald-700">
                 {s.toLocaleString("fa-IR")}
               </span>
               <span className="text-slate-500">{STAGE_LABELS[s]}</span>
-              {i < 4 ? <span className="text-slate-300">←</span> : null}
+              {i < 3 ? <span className="text-slate-300">←</span> : null}
             </span>
           ))}
         </div>
@@ -149,7 +149,6 @@ export function RequestListView() {
               <FilterSelect>
                 <option>همه مراحل</option>
                 <option>ثبت درخواست</option>
-                <option>برداشت اطلاعات</option>
                 <option>صدور پیش‌فاکتور</option>
                 <option>قرارداد</option>
                 <option>پروژه اجرایی</option>
@@ -184,12 +183,10 @@ function stageTone(stage: number): "emerald" | "amber" | "sky" | "violet" | "sla
     case 1:
       return "slate";
     case 2:
-      return "sky";
-    case 3:
       return "amber";
-    case 4:
+    case 3:
       return "violet";
-    case 5:
+    case 4:
       return "emerald";
     default:
       return "slate";
