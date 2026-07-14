@@ -211,3 +211,35 @@ Agent Browser verification:
 Stage Summary:
 - Survey tab now matches mockup design: 3-column layout, view/edit mode toggle, SVG schematic with dimension annotations, stages sidebar with progress donut, bottom panels in edit mode.
 - Existing parts-engine integration preserved (save triggers computeParts).
+
+---
+Task ID: survey-view-edit-enhancements
+Agent: main
+Task: View mode dropdowns (view type + map type + export) + edit mode per-stage fields + top-view schematic + red field highlighting
+
+Work Log:
+- Created lib/survey-stages.ts: SURVEY_STAGES config (7 stages each with own fields — چاله: 4 fields, آهنکشی: 4, ریل: 4, درب: 5, کابین: 5, مکانیک: 5, راه‌اندازی: 5). VIEW_TYPES (6: بالا/جلو/راست/چپ/پشت/سه‌بعدی), MAP_TYPES (8: چاله/آهنکشی/ریل‌گذاری/درب/کابین/اورهد/چاهک/چراغ تونلی), EXPORT_FORMATS (4: PDF/DWG/PNG/چاپ), defaultSurveyValues().
+- Rewrote SurveyEditTab: state now holds all stage fields in one survey object + completedStages Set + focusedField + viewType/mapType/zoom.
+  * View mode: LabeledSelect dropdowns for "نوع نما" (6 options) + "نوع نقشه" (8 options) + 4 export format buttons in toolbar bar above schematic.
+  * Edit mode: right panel shows ONLY active stage's fields (changes when stage clicked in left sidebar).
+  * Schematic in edit mode always "top" view; in view mode respects selected viewType.
+  * Field focus: onFocus sets focusedField → schematic dimension for that field turns red (#ef4444); input border also turns red.
+  * Per-stage save: "ثبت مرحله [label]" button marks stage complete (checkmark in sidebar + "تکمیل شده" badge). All stages complete → full survey saved to store.
+  * Progress donut reflects completedStages count.
+- Rewrote ElevatorSchematic as two-mode SVG:
+  * Top view (plan): shaft outline, cabin, rails (stage 3), iron brackets (stage 2), door (stage 4), counterweight (stage 6), pit highlight (stage 1). Dimension lines for pitWidth, pitDepth, cabinWidth, cabinDepth — color red if focusedField matches, else gray.
+  * Other views (front/back/right/left/3d): vertical cross-section with shaft, pit, floors, headroom, rails, iron, cabin, door. Dimensions for pitWidth, total height, cabinWidth — red if focused.
+  * DimLine helper component (h/v dimension with end ticks + label).
+  * StageBadge component showing current stage.
+- Built LabeledSelect component (label + select with chevron icon).
+- Updated ReadField to accept string|number value.
+
+Agent Browser verification:
+- View mode: "نوع نما" dropdown has 6 options (نمای بالا/جلو/راست/چپ/پشت/سه‌بعدی), "نوع نقشه" has 8 options (نقشه چاله/آهنکشی/ریل‌گذاری/درب/کابین/اورهد/چاهک/چراغ تونلی). 4 export buttons (PDF, DWG, PNG, چاپ). Switching view type updates schematic label.
+- Edit mode: stage 1 (چاله) shows 4 fields (عرض چاه, عمق چاله, طول چاله, ضخامت کف چاله). Switching to stage 3 (ریل) shows 4 different fields (نوع ریل, تعداد شاخه ریل, طول هر شاخه, فاصله براکت‌ها) + "ثبت مرحله ریل" button.
+- Field focus: focused pitWidth input → schematic dimension turned red (1 red text confirmed via DOM query).
+- Stage completion: clicked "ثبت مرحله چاله" → "تکمیل شده" badge appeared + checkmark in stage 1 sidebar button.
+- 0 runtime errors, lint clean, all GET 200.
+
+Stage Summary:
+- Two enhancements implemented: (1) view mode has view-type + map-type dropdowns + export buttons, (2) edit mode shows per-stage fields, top-view-only schematic, field-focus highlights dimension red, stage completion marks done.
