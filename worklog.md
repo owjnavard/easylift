@@ -181,3 +181,33 @@ Agent Browser verification:
 Stage Summary:
 - 4 changes implemented per request: (1) history tab in project page, (2) history popup (button+Dialog) in quotations all stages, (3) step 2 (ارجاع) deleted entirely, (4) step 2 (صدور) shows "در انتظار برداشت" state + vertical stacked layout (قطعات→هزینه‌های جانبی→محاسبه قیمت نهایی).
 - Workflow now 4 stages. Bidirectional integration with technical section preserved.
+
+---
+Task ID: survey-tab-redesign
+Agent: main
+Task: Redesign elevator survey tab to match mockup images (view/edit modes, 3-column layout, SVG schematic)
+
+Work Log:
+- Analyzed 2 mockup images via VLM (z-ai vision CLI): Image 1 = view mode (3-column: stages+progress / schematic / read-only info), Image 2 = edit mode (schematic+inputs / file list / bottom panels: history+notes+images).
+- Redesigned SurveyEditTab in elevator-page.tsx with:
+  * Mode toggle (مشاهده/ویرایش) in header — defaults to view if survey completed, edit if not.
+  * 3-column grid (lg:grid-cols-12): left (3) stages + progress donut, center (6) schematic, right (3) input/read-only panel.
+  * Left column: 7-stage stepper (چاله/آهنکشی/ریل/درب/کابین/مکانیک/راه‌اندازی) with click-to-switch + SVG progress donut (68% when saved) with legend.
+  * Center column: toolbar (انتخاب/ویرایش/متن/حذف/زوم±/بازگشت) + SVG schematic showing shaft cross-section with cabin, rails, pit, headroom, dimension annotations (red lines with labels) + dimension summary bar (4 chips).
+  * Right column (view mode): read-only fields (عرض چاه, عمق چاله, ارتفاع طبقه, ارتفاع اورهد, ارتفاع سفر کل) + status badge + "ویرایش اطلاعات" button.
+  * Right column (edit mode): editable DimInput fields + TypeSelect dropdowns (نوع درب/کابین/موتور) + "ثبت و محاسبه قطعات" button.
+  * Bottom panels (edit mode only): تاریخچه تغییرات + توضیحات فنی (textarea) + تصاویر پروژه (file cards).
+- Built sub-components: ProgressDonut (SVG circle), ElevatorSchematic (full SVG with shaft/cabin/rails/dimensions/stage highlight), ToolBtn, DimChip, DimInput, ReadField, TypeSelect, HistEntry.
+- Schematic SVG dynamically renders based on survey dimensions (pitWidth, pitDepth, floorHeight, headroom) and highlights active stage area (e.g. pit highlighted on stage 0, rails on stage 2, cabin on stage 4).
+- Save in edit mode -> switches to view mode + persists to store.
+
+Agent Browser verification:
+- Opened elevator A1 (پارسیان, survey completed) -> defaults to VIEW mode: stages sidebar, progress donut (68%), schematic SVG (4 texts, 6 rects confirmed), read-only right panel showing ۱۷۰cm/۱.۶m/۳.۲m/۳.۸m + "تکمیل شده" status.
+- Switched to EDIT mode: right panel shows editable inputs + type selects + "ثبت و محاسبه قطعات" button. Bottom panels appear: تاریخچه تغییرات + توضیحات فنی + تصاویر پروژه (نقشه اولیه.pdf, عکس چاله.jpg).
+- Stage switching: clicked "ریل" -> header updated to "مرحله ۳ از ۷ — ریل", schematic updated.
+- Save -> returned to view mode ("مشاهده شماتیک", "اطلاعات ثبت‌شده", "تکمیل شده").
+- 0 errors, lint clean, all GET 200.
+
+Stage Summary:
+- Survey tab now matches mockup design: 3-column layout, view/edit mode toggle, SVG schematic with dimension annotations, stages sidebar with progress donut, bottom panels in edit mode.
+- Existing parts-engine integration preserved (save triggers computeParts).
