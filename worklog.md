@@ -72,3 +72,43 @@ Agent Browser verification (desktop 1440 + mobile 390):
 Stage Summary:
 - Full redesign complete, lint clean, all pages responsive, collapsible sidebar + mobile drawer + mobile AI sheet all functional.
 - Design language: Graphite & Emerald, Vazirmatn, lucide icons, rounded-2xl, soft shadows, consistent spacing.
+
+---
+Task ID: quotations-workflow
+Agent: main
+Task: Redesign ONLY the quotations module with a 5-step workflow (other modules untouched)
+
+Work Log:
+- Created lib/vendor-data.ts: PART_CATALOG with 8 part types (motor, rail, cable, door, cabin, panel, shoe, button), each with 2-3 brands + prices + stock. formatRial/formatCompact helpers.
+- Created lib/parts-engine.ts: computeParts(building, survey) formula engine — rails=2×(travel+pit+head)/3m, cable=2×travel, doors=floors×elevators, shoes=4×elevators, buttons=(floors+1)×elevators, etc. Each result includes formula explanation.
+- Created lib/quotations-store.ts: Zustand store with QuotationRequest (stage 1-5, status draft/active, history log). Actions: createRequest, saveSurvey (auto-recomputes parts via engine), setPartBrand, addExtra, setProfit, setDiscount, approveByCustomer, saveContract, signContract, activate (draft->active), goToStage (back nav). Seed data: 3 requests at different stages.
+- Built module in src/components/easy-lift/quotations/:
+  * workflow-stepper.tsx: 5-stage horizontal stepper (desktop) + compact progress bar (mobile), locked stages > maxReached, emerald active/done states, jump-to-stage.
+  * step1-request.tsx: requester type (marketer/customer/internal), customer, address, building usage, floors, units/floor, elevator count. Creates Draft project.
+  * step2-survey.tsx: shaft dimensions (pitWidth, pitDepth, floorHeight, headroom) + live parts preview table with formulas. Auto-computes parts on save.
+  * step3-quote.tsx: parts table with brand dropdowns (from Vendor List, out-of-stock disabled), unit/line totals, extras (add/remove), profit slider (0-50%), discount, final price auto-calc, issue/print/send/approve buttons.
+  * step4-contract.tsx: commitments, conditions, duration, prepayment, payment terms, final specs. Save + sign (electronic) buttons.
+  * step5-activate.tsx: full process summary (5 stages), project specs grid, activate button (draft->active), success banner.
+  * history-panel.tsx: timeline of all events with actor/stage/timeAgo.
+  * request-list-view.tsx: KPIs (total/in-progress/converted/draft), workflow legend, filterable table, click row -> workflow.
+  * workflow-view.tsx: header (code, customer, meta) + stepper + current step + history panel.
+- Rewrote pages/quotations-page.tsx to switch list<->workflow by selectedId (export name QuotationsPage preserved so shell router unchanged).
+
+Agent Browser verification:
+- List view: KPIs, legend, table with 3 seeded requests (PF-14025 stage3, PF-14024 stage1, PF-14023 active). 0 errors.
+- New request -> step 1 form with requester type buttons + building fields. Proceed to step 2.
+- PF-14025 (stage 3): 8 brand selects, selected all -> issue button enabled -> issued -> approve by customer -> step 4.
+- Step 4: filled commitments + conditions -> sign enabled -> signed -> "تبدیل به پروژه اجرایی" -> step 5.
+- Step 5: full summary, activate button -> "پروژه با موفقیت فعال شد!" success banner.
+- History panel logged every event (request, survey, issue, sign, activate).
+- Back navigation: clicked stage 2 -> survey form + parts preview shown. Locked stages disabled.
+- Mobile 390px: compact stepper "مرحله X از ۵" with progress segments.
+- Other pages verified intact: dashboard, contacts, warehouse all render unchanged.
+
+Stage Summary:
+- Complete 5-step workflow implemented per spec: request -> survey -> quote -> contract -> activate.
+- Parts calc ONLY via formula engine; brands ONLY from Vendor List; all changes logged in history.
+- Back navigation allowed to any reached stage; future stages locked.
+- Draft->Active transition preserves all data; project added to active list.
+- Other modules untouched; shell router integration preserved via QuotationsPage export.
+- Lint clean, all GET 200, 0 runtime errors.
