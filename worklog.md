@@ -243,3 +243,32 @@ Agent Browser verification:
 
 Stage Summary:
 - Two enhancements implemented: (1) view mode has view-type + map-type dropdowns + export buttons, (2) edit mode shows per-stage fields, top-view-only schematic, field-focus highlights dimension red, stage completion marks done.
+
+---
+Task ID: contacts-form-dialog
+Agent: main
+Task: New contact form dialog with multi-select groups, add-group popup, individual/legal toggle (matching mockup image)
+
+Work Log:
+- Analyzed mockup image via VLM (z-ai vision): dialog with avatar + person type (حقیقی/حقوقی radio), group checkboxes, tab bar (اطلاعات/بانکی/تلفن/آدرس/مدارک), form fields.
+- Created lib/contact-groups.ts: DEFAULT_GROUPS (5: مشتری/تأمین‌کننده/پیمانکار/پرسنل/بازاریاب with emoji icons), PersonType, CONTACT_TABS (5 tabs with lucide icon names).
+- Built contact-form-dialog.tsx: shadcn Dialog with:
+  * Header: title "ثبت مخاطب جدید" + close button.
+  * Top section: circular avatar (initial letter, + button) + person type toggle (حقیقی/حقوقی) with check icon when selected.
+  * Groups section: 5 default group chips (multi-select, click toggles, green when selected) + "افزودن گروه" button → inline input "نام گروه جدید" + "افزودن" → adds custom group with 🏷️ icon.
+  * Tab bar: 5 tabs (اطلاعات/اطلاعات بانکی/تلفن/آدرس/مدارک) with lucide icons, click switches content.
+  * Tab content: حقیقی shows نام/نام خانوادگی/نام پدر; حقوقی shows نام شرکت (required *). Each tab has relevant fields. Docs tab has upload dropzone.
+  * Footer: انصراف + ذخیره مخاطب buttons.
+- Updated contacts-page.tsx: added dialogOpen state + handleSave (creates Contact row from form data, adds to top of table). "ثبت مخاطب جدید" button in both PageHeader and Toolbar opens dialog. New contacts appear in table with person type badge.
+
+Agent Browser verification:
+- Contacts page: "ثبت مخاطب جدید" button present in header + toolbar.
+- Dialog opens: title "ثبت مخاطب جدید", حقیقی/حقوقی buttons, 5 group chips (مشتری/تأمین‌کننده/پیمانکار/پرسنل/بازاریاب), "افزودن گروه" button, 5 tabs (اطلاعات/اطلاعات بانکی/تلفن/آدرس/مدارک), ذخیره/انصراف buttons.
+- Toggle حقیقی→حقوقی: field switched to "نام شرکت".
+- "افزودن گروه" → input appeared → typed "مشاور" → added as "🏷️ مشاور" chip.
+- Tab switch to تلفن: showed تلفن ثابت/موبایل fields.
+- Save: dialog closed, new contact row added to table.
+- 0 errors, lint clean.
+
+Stage Summary:
+- Contact form dialog implemented per mockup: multi-select groups (5 default + custom add), individual/legal toggle, 5 info tabs, avatar, all form fields.
