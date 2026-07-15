@@ -28,6 +28,44 @@ export interface Elevator {
   parts: PartRequirement[];
 }
 
+// وضعیت تأمین کالا برای انبار پروژه
+export type SupplyStatus =
+  | "main-stock" // موجود در انبار اصلی
+  | "project-stock" // منتقل به انبار پروژه
+  | "delivered" // تحویل پروژه شده
+  | "purchase-request"; // درخواست خرید داده شده
+
+export interface PartSupply {
+  elevatorId: string;
+  partId: string;
+  qtyNeeded: number;
+  qtySupplied: number;
+  qtyDelivered: number;
+  status: SupplyStatus;
+}
+
+// وظیفه
+export interface Task {
+  id: string;
+  elevatorId: string; // آسانسور مربوطه
+  title: string;
+  assignee: string;
+  type: "instruction" | "task"; // دستورالعمل یا وظیفه
+  status: "pending" | "in-progress" | "done";
+  dueDate: string;
+  description: string;
+}
+
+// تعهدات قرارداد
+export interface Commitment {
+  id: string;
+  projectId: string;
+  party: "contractor" | "employer"; // پیمانکار یا کارفرما
+  title: string;
+  description: string;
+  status: "pending" | "in-progress" | "done";
+}
+
 export type ProjectStatus = "draft" | "active";
 
 export interface ProjectHistoryEntry {
@@ -155,12 +193,49 @@ function seed(): { projects: Project[]; elevators: Elevator[] } {
   });
   elevators.push(...p3Elev);
 
-  return { projects, elevators };
+  // وظایف نمونه
+  const tasks: Task[] = [
+    { id: "t1", elevatorId: p1Elev[0].id, title: "نصب ریل T90", assignee: "حسین کریمی", type: "task", status: "done", dueDate: "۱۴۰۵/۰۴/۱۰", description: "نصب ۱۲ شاخه ریل T90 در مسیر چپ و راست" },
+    { id: "t2", elevatorId: p1Elev[0].id, title: "دستورالعمل ایمنی چاله", assignee: "مدیر فنی", type: "instruction", status: "done", dueDate: "۱۴۰۵/۰۴/۰۵", description: "رعایت اصول ایمنی هنگام کار در چاله" },
+    { id: "t3", elevatorId: p1Elev[1].id, title: "نصب کابین", assignee: "علی رضایی", type: "task", status: "in-progress", dueDate: "۱۴۰۵/۰۵/۰۱", description: "نصب کابین آسانسور A2" },
+    { id: "t4", elevatorId: p1Elev[1].id, title: "بررسی استاندارد", assignee: "مدیر فنی", type: "instruction", status: "pending", dueDate: "۱۴۰۵/۰۵/۱۰", description: "کنترل تطابق با استانداردهای ایمنی" },
+    { id: "t5", elevatorId: p3Elev[0].id, title: "راه‌اندازی نهایی", assignee: "حسین کریمی", type: "task", status: "done", dueDate: "۱۴۰۵/۰۳/۲۰", description: "راه‌اندازی و تست نهایی آسانسور" },
+  ];
+
+  // تعهدات قرارداد نمونه برای پارسیان
+  const commitments: Commitment[] = [
+    { id: "c1", projectId: p1.id, party: "contractor", title: "تأمین موتور گیرلس", description: "تأمین ۴ عدد موتور گیرلس برند آرکل", status: "done" },
+    { id: "c2", projectId: p1.id, party: "contractor", title: "نصب و راه‌اندازی", description: "نصب کامل ۴ آسانسور ظرف ۶ ماه", status: "in-progress" },
+    { id: "c3", projectId: p1.id, party: "employer", title: "پرداخت پیش‌پرداخت", description: "پرداخت ۳۰٪ مبلغ قرارداد پیش از شروع", status: "done" },
+    { id: "c4", projectId: p1.id, party: "employer", title: "تأمین دسترسی محل", description: "فراهم کردن دسترسی به چاه و موتورخانه", status: "done" },
+  ];
+
+  // وضعیت تأمین کالا برای آسانسورهای پارسیان
+  const supplies: PartSupply[] = [];
+  const partIds = ["motor", "rail", "cable", "door", "cabin", "panel", "shoe", "button"];
+  const statuses: SupplyStatus[] = ["main-stock", "project-stock", "delivered", "purchase-request"];
+  for (const elev of p1Elev) {
+    partIds.forEach((pid, i) => {
+      supplies.push({
+        elevatorId: elev.id,
+        partId: pid,
+        qtyNeeded: [1, 12, 48, 12, 1, 1, 48, 13][i],
+        qtySupplied: Math.floor([1, 12, 48, 12, 1, 1, 48, 13][i] * 0.7),
+        qtyDelivered: Math.floor([1, 12, 48, 12, 1, 1, 48, 13][i] * 0.3),
+        status: statuses[i % 4],
+      });
+    });
+  }
+
+  return { projects, elevators, tasks, commitments, supplies };
 }
 
 interface ProjectState {
   projects: Project[];
   elevators: Elevator[];
+  tasks: Task[];
+  commitments: Commitment[];
+  supplies: PartSupply[];
   selectedProjectId: string | null;
   selectedElevatorId: string | null;
   selectProject: (id: string | null) => void;
@@ -189,6 +264,9 @@ const seedData = seed();
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: seedData.projects,
   elevators: seedData.elevators,
+  tasks: seedData.tasks,
+  commitments: seedData.commitments,
+  supplies: seedData.supplies,
   selectedProjectId: null,
   selectedElevatorId: null,
   selectProject: (id) => set({ selectedProjectId: id }),
