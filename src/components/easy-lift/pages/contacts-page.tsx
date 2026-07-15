@@ -1,7 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Phone, MapPin, Mail, Building2, Plus, Users } from "lucide-react";
+import {
+  Phone,
+  MapPin,
+  Mail,
+  Building2,
+  Plus,
+  Users,
+  User,
+  Search,
+  Pencil,
+  Eye,
+  ChevronLeft,
+} from "lucide-react";
 import {
   EasyAiCard,
   PageHeader,
@@ -9,7 +21,6 @@ import {
   StatusBadge,
   Toolbar,
   FilterSelect,
-  DataTable,
   type Column,
 } from "@/components/easy-lift";
 import { KpiCard } from "@/components/easy-lift/kpi-card";
@@ -17,30 +28,119 @@ import {
   ContactFormDialog,
   type ContactFormData,
 } from "@/components/easy-lift/contacts/contact-form-dialog";
-import { DEFAULT_GROUPS } from "@/lib/contact-groups";
+import { DEFAULT_GROUPS, type PersonType } from "@/lib/contact-groups";
+import { cn } from "@/lib/utils";
 
 interface Contact {
   id: string;
   name: string;
   group: string;
+  groupIds: string[];
   phone: string;
+  mobile: string;
+  email: string;
   city: string;
+  address: string;
   projects: number;
   status: "active" | "partner";
-  personType: "individual" | "legal";
+  personType: PersonType;
+  formData: ContactFormData;
 }
 
-const initialRows: Contact[] = [
-  { id: "1", name: "شرکت پارسیان", group: "مشتری", phone: "02188776655", city: "تهران", projects: 8, status: "active", personType: "legal" },
-  { id: "2", name: "آسانبر نوین", group: "تأمین‌کننده", phone: "02122334455", city: "اصفهان", projects: 12, status: "partner", personType: "legal" },
-  { id: "3", name: "برج آریا", group: "مشتری", phone: "02144556677", city: "تهران", projects: 3, status: "active", personType: "legal" },
-  { id: "4", name: "سپهر آسانسور", group: "تأمین‌کننده", phone: "03155667788", city: "اصفهان", projects: 9, status: "partner", personType: "legal" },
-  { id: "5", name: "پارس لیفت", group: "تأمین‌کننده", phone: "02166778899", city: "کرج", projects: 6, status: "active", personType: "legal" },
-];
+function seedContacts(): Contact[] {
+  const mk = (
+    id: string,
+    name: string,
+    groupIds: string[],
+    phone: string,
+    city: string,
+    projects: number,
+    status: "active" | "partner",
+    personType: PersonType = "legal"
+  ): Contact => {
+    const formData: ContactFormData = {
+      personType,
+      groups: groupIds,
+      firstName: personType === "individual" ? name.split(" ")[0] : "",
+      lastName: personType === "individual" ? name.split(" ")[1] ?? "" : "",
+      fatherName: "",
+      companyName: personType === "legal" ? name : "",
+      customerType: "عادی",
+      description: "",
+      taxType: "",
+      taxCode: "",
+      postalCode: "",
+      idNumber: "",
+      nationalId: "",
+      accountNumber: "",
+      iban: "",
+      phone,
+      mobile: "",
+      email: "",
+      city,
+      address: "",
+    };
+    return {
+      id,
+      name,
+      group: groupIds
+        .map((gid) => DEFAULT_GROUPS.find((g) => g.id === gid)?.label ?? gid)
+        .join("، "),
+      groupIds,
+      phone,
+      mobile: "",
+      email: "",
+      city,
+      address: "",
+      projects,
+      status,
+      personType,
+      formData,
+    };
+  };
+
+  return [
+    mk("1", "شرکت پارسیان", ["customer"], "02188776655", "تهران", 8, "active"),
+    mk("2", "آسانبر نوین", ["supplier"], "02122334455", "اصفهان", 12, "partner"),
+    mk("3", "برج آریا", ["customer"], "02144556677", "تهران", 3, "active"),
+    mk("4", "سپهر آسانسور", ["supplier"], "03155667788", "اصفهان", 9, "partner"),
+    mk("5", "پارس لیفت", ["supplier"], "02166778899", "کرج", 6, "active"),
+    mk("6", "محمد احمدی", ["staff", "marketer"], "09123456789", "تهران", 0, "active", "individual"),
+  ];
+}
 
 export function ContactsPage() {
-  const [rows, setRows] = useState<Contact[]>(initialRows);
+  const [contacts, setContacts] = useState<Contact[]>(seedContacts);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<ContactFormData | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filtered = contacts.filter((c) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      c.city.toLowerCase().includes(q) ||
+      c.group.toLowerCase().includes(q)
+    );
+  });
+
+  const selected = contacts.find((c) => c.id === selectedId);
+
+  function openCreate() {
+    setEditData(null);
+    setEditingId(null);
+    setDialogOpen(true);
+  }
+
+  function openEdit(contact: Contact) {
+    setEditData(contact.formData);
+    setEditingId(contact.id);
+    setDialogOpen(true);
+  }
 
   function handleSave(data: ContactFormData) {
     const name =
@@ -51,17 +151,47 @@ export function ContactsPage() {
       data.groups
         .map((gid) => DEFAULT_GROUPS.find((g) => g.id === gid)?.label ?? gid)
         .join("، ") || "—";
-    const newContact: Contact = {
-      id: `c-${Date.now()}`,
-      name,
-      group: groupLabel,
-      phone: data.phone || data.mobile || "—",
-      city: data.city || "—",
-      projects: 0,
-      status: "active",
-      personType: data.personType,
-    };
-    setRows((prev) => [newContact, ...prev]);
+
+    if (editingId) {
+      // ویرایش
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.id === editingId
+            ? {
+                ...c,
+                name,
+                group: groupLabel,
+                groupIds: data.groups,
+                phone: data.phone || data.mobile || "—",
+                mobile: data.mobile,
+                email: data.email,
+                city: data.city || "—",
+                address: data.address,
+                personType: data.personType,
+                formData: data,
+              }
+            : c
+        )
+      );
+    } else {
+      // ایجاد جدید
+      const newContact: Contact = {
+        id: `c-${Date.now()}`,
+        name,
+        group: groupLabel,
+        groupIds: data.groups,
+        phone: data.phone || data.mobile || "—",
+        mobile: data.mobile,
+        email: data.email,
+        city: data.city || "—",
+        address: data.address,
+        projects: 0,
+        status: "active",
+        personType: data.personType,
+        formData: data,
+      };
+      setContacts((prev) => [newContact, ...prev]);
+    }
   }
 
   const columns: Column<Contact>[] = [
@@ -70,32 +200,79 @@ export function ContactsPage() {
       header: "نام",
       align: "right",
       render: (r) => (
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+        <button
+          onClick={() => setSelectedId(r.id)}
+          className="flex items-center gap-3 text-right"
+        >
+          <span
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white",
+              r.personType === "legal"
+                ? "bg-gradient-to-br from-emerald-500 to-teal-500"
+                : "bg-gradient-to-br from-sky-500 to-indigo-500"
+            )}
+          >
             {r.name.charAt(0)}
           </span>
           <div>
-            <span className="font-semibold text-slate-800">{r.name}</span>
-            <span className="ms-2 text-[10px] text-slate-400">
-              {r.personType === "legal" ? "حقوقی" : "حقیقی"}
-            </span>
+            <div className="font-bold text-slate-800">{r.name}</div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+              {r.personType === "legal" ? (
+                <>
+                  <Building2 className="size-3" /> حقوقی
+                </>
+              ) : (
+                <>
+                  <User className="size-3" /> حقیقی
+                </>
+              )}
+            </div>
           </div>
+        </button>
+      ),
+    },
+    {
+      key: "group",
+      header: "گروه",
+      align: "center",
+      render: (r) => (
+        <div className="flex flex-wrap justify-center gap-1">
+          {r.groupIds.map((gid) => {
+            const g = DEFAULT_GROUPS.find((x) => x.id === gid);
+            return (
+              <span
+                key={gid}
+                className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600"
+              >
+                <span>{g?.icon}</span>
+                {g?.label}
+              </span>
+            );
+          })}
         </div>
       ),
     },
-    { key: "group", header: "گروه", align: "center" },
     {
       key: "phone",
       header: "تلفن",
       align: "center",
       render: (r) => (
-        <span dir="ltr" className="font-mono text-xs">
+        <span dir="ltr" className="font-mono text-xs text-slate-600">
           {r.phone}
         </span>
       ),
     },
-    { key: "city", header: "شهر", align: "center" },
-    { key: "projects", header: "پروژه", align: "center" },
+    {
+      key: "city",
+      header: "شهر",
+      align: "center",
+      render: (r) => (
+        <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+          <MapPin className="size-3 text-slate-400" />
+          {r.city}
+        </span>
+      ),
+    },
     {
       key: "status",
       header: "وضعیت",
@@ -107,6 +284,29 @@ export function ContactsPage() {
           <StatusBadge tone="sky">همکار</StatusBadge>
         ),
     },
+    {
+      key: "actions",
+      header: "",
+      align: "left",
+      render: (r) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={() => setSelectedId(r.id)}
+            className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600"
+            title="مشاهده"
+          >
+            <Eye className="size-4" />
+          </button>
+          <button
+            onClick={() => openEdit(r)}
+            className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-sky-50 hover:text-sky-600"
+            title="ویرایش"
+          >
+            <Pencil className="size-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -117,15 +317,16 @@ export function ContactsPage() {
         subtitle="کارفرمایان، پیمانکاران، تأمین‌کنندگان و پرسنل"
         searchPlaceholder="جستجوی مخاطب..."
         actionLabel="ثبت مخاطب جدید"
-        onAction={() => setDialogOpen(true)}
+        onAction={openCreate}
       />
 
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+        {/* KPI */}
         <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <KpiCard tone="hero" label="کل مخاطبین" value={rows.length.toLocaleString("fa-IR")} icon={Users} />
-          <KpiCard tone="emerald" label="مشتری" value={rows.filter((r) => r.group.includes("مشتری")).length.toLocaleString("fa-IR")} icon={Building2} />
-          <KpiCard tone="sky" label="تأمین‌کننده" value={rows.filter((r) => r.group.includes("تأمین")).length.toLocaleString("fa-IR")} icon={Building2} />
-          <KpiCard tone="violet" label="سایر" value={rows.filter((r) => !r.group.includes("مشتری") && !r.group.includes("تأمین")).length.toLocaleString("fa-IR")} icon={Users} />
+          <KpiCard tone="hero" label="کل مخاطبین" value={contacts.length.toLocaleString("fa-IR")} icon={Users} />
+          <KpiCard tone="emerald" label="مشتری" value={contacts.filter((c) => c.groupIds.includes("customer")).length.toLocaleString("fa-IR")} icon={Building2} />
+          <KpiCard tone="sky" label="تأمین‌کننده" value={contacts.filter((c) => c.groupIds.includes("supplier")).length.toLocaleString("fa-IR")} icon={Building2} />
+          <KpiCard tone="violet" label="پرسنل و بازاریاب" value={contacts.filter((c) => c.groupIds.includes("staff") || c.groupIds.includes("marketer")).length.toLocaleString("fa-IR")} icon={User} />
         </section>
 
         <Toolbar
@@ -138,12 +339,6 @@ export function ContactsPage() {
                 ))}
               </FilterSelect>
               <FilterSelect>
-                <option>همه شهرها</option>
-                <option>تهران</option>
-                <option>اصفهان</option>
-                <option>کرج</option>
-              </FilterSelect>
-              <FilterSelect>
                 <option>همه</option>
                 <option>حقیقی</option>
                 <option>حقوقی</option>
@@ -152,7 +347,7 @@ export function ContactsPage() {
           }
           actions={
             <button
-              onClick={() => setDialogOpen(true)}
+              onClick={openCreate}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
             >
               <Plus className="size-4" />
@@ -161,83 +356,219 @@ export function ContactsPage() {
           }
         />
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Panel className="el-card-hover p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex gap-3">
-                <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-50 text-base font-bold text-emerald-600">
-                  پ
+        {/* Main layout: table + detail panel */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          {/* Table */}
+          <div className="lg:col-span-2">
+            <Panel padded={false} className="overflow-hidden">
+              {/* search */}
+              <div className="border-b border-slate-100 p-4">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="جستجو در نام، تلفن، شهر، گروه..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-10 pl-3 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                  />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900">شرکت پارسیان</h3>
-                  <p className="text-xs text-slate-500">مشتری</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead className="bg-slate-50/80">
+                    <tr className="border-b border-slate-200/70">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">نام</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">گروه</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">تلفن</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">شهر</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((c) => (
+                      <tr
+                        key={c.id}
+                        onClick={() => setSelectedId(c.id)}
+                        className={cn(
+                          "cursor-pointer border-b border-slate-100 transition last:border-0 hover:bg-slate-50/70",
+                          selectedId === c.id && "bg-emerald-50/50"
+                        )}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={cn(
+                                "grid size-9 shrink-0 place-items-center rounded-lg text-xs font-bold text-white",
+                                c.personType === "legal"
+                                  ? "bg-gradient-to-br from-emerald-500 to-teal-500"
+                                  : "bg-gradient-to-br from-sky-500 to-indigo-500"
+                              )}
+                            >
+                              {c.name.charAt(0)}
+                            </span>
+                            <div>
+                              <div className="font-bold text-slate-800">{c.name}</div>
+                              <div className="text-[10px] text-slate-400">
+                                {c.personType === "legal" ? "حقوقی" : "حقیقی"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap justify-center gap-1">
+                            {c.groupIds.slice(0, 2).map((gid) => {
+                              const g = DEFAULT_GROUPS.find((x) => x.id === gid);
+                              return (
+                                <span
+                                  key={gid}
+                                  className="inline-flex items-center gap-0.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+                                >
+                                  <span>{g?.icon}</span>
+                                  {g?.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span dir="ltr" className="font-mono text-xs text-slate-600">
+                            {c.phone}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-xs text-slate-600">
+                          {c.city}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedId(c.id);
+                              }}
+                              className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600"
+                            >
+                              <Eye className="size-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(c);
+                              }}
+                              className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-sky-50 hover:text-sky-600"
+                            >
+                              <Pencil className="size-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          </div>
+
+          {/* Detail panel */}
+          <div className="space-y-5">
+            {selected ? (
+              <Panel className="overflow-hidden p-0">
+                {/* header */}
+                <div className="relative overflow-hidden bg-gradient-to-l from-emerald-600 to-teal-500 p-5 text-white">
+                  <div className="absolute -left-6 -top-6 size-24 rounded-full bg-white/10" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl font-black">
+                      {selected.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-lg font-bold">{selected.name}</h3>
+                      <p className="mt-0.5 text-xs text-emerald-50">
+                        {selected.personType === "legal" ? "شخص حقوقی" : "شخص حقیقی"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <StatusBadge tone="emerald">فعال</StatusBadge>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 text-xs text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <Phone className="size-3.5 text-slate-400" />
-                <span dir="ltr">02188776655</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <MapPin className="size-3.5 text-slate-400" /> تهران
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Mail className="size-3.5 text-slate-400" /> info@test.com
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Building2 className="size-3.5 text-slate-400" /> ۸ پروژه
-              </div>
-            </div>
-            <div className="mt-5 flex gap-2">
-              <button className="flex-1 rounded-lg bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700">
-                مشاهده
-              </button>
-              <button className="flex-1 rounded-lg bg-slate-100 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200">
-                ویرایش
-              </button>
-            </div>
-          </Panel>
 
-          <Panel className="el-card-hover p-5">
-            <div className="flex gap-3">
-              <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-sky-50 text-base font-bold text-sky-600">
-                آ
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900">آسانبر نوین</h3>
-                <p className="text-xs text-slate-500">تأمین‌کننده</p>
-              </div>
-            </div>
-            <div className="mt-5 space-y-2.5 text-xs text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <Phone className="size-3.5 text-slate-400" />
-                <span dir="ltr">02122334455</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Mail className="size-3.5 text-slate-400" /> sales@novin.com
-              </div>
-              <div className="flex items-center gap-1.5">
-                <MapPin className="size-3.5 text-slate-400" /> اصفهان
-              </div>
-            </div>
-            <button className="mt-5 w-full rounded-lg bg-slate-100 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200">
-              مشاهده اطلاعات
-            </button>
-          </Panel>
+                {/* info */}
+                <div className="space-y-3 p-5">
+                  {/* groups */}
+                  <div>
+                    <div className="mb-2 text-[11px] font-bold text-slate-500">گروه‌ها</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selected.groupIds.map((gid) => {
+                        const g = DEFAULT_GROUPS.find((x) => x.id === gid);
+                        return (
+                          <span
+                            key={gid}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700"
+                          >
+                            <span>{g?.icon}</span>
+                            {g?.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          <EasyAiCard
-            insights={[
-              "۳ مخاطب تکراری شناسایی شد.",
-              "۲ شماره موبایل ناقص است.",
-              "۵ ایمیل نامعتبر است.",
-            ]}
-            ctaLabel="بررسی توسط AI"
-          />
-        </section>
+                  {/* contact info */}
+                  <div className="space-y-2.5 border-t border-slate-100 pt-3">
+                    <InfoRow icon={Phone} label="تلفن" value={selected.phone} ltr />
+                    {selected.mobile ? (
+                      <InfoRow icon={Phone} label="موبایل" value={selected.mobile} ltr />
+                    ) : null}
+                    {selected.email ? (
+                      <InfoRow icon={Mail} label="ایمیل" value={selected.email} ltr />
+                    ) : null}
+                    <InfoRow icon={MapPin} label="شهر" value={selected.city} />
+                    {selected.address ? (
+                      <div className="flex gap-2 text-xs">
+                        <MapPin className="mt-0.5 size-3.5 shrink-0 text-slate-400" />
+                        <div>
+                          <div className="text-slate-400">آدرس</div>
+                          <div className="mt-0.5 text-slate-700">{selected.address}</div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
 
-        <DataTable columns={columns} data={rows} onRowClick={() => {}} />
+                  {/* actions */}
+                  <div className="flex gap-2 border-t border-slate-100 pt-4">
+                    <button
+                      onClick={() => openEdit(selected)}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                    >
+                      <Pencil className="size-3.5" />
+                      ویرایش
+                    </button>
+                    <button className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
+                      <Eye className="size-3.5" />
+                      مشاهده کامل
+                    </button>
+                  </div>
+                </div>
+              </Panel>
+            ) : (
+              <Panel className="p-8 text-center">
+                <Users className="mx-auto size-12 text-slate-200" />
+                <p className="mt-3 text-sm font-medium text-slate-400">
+                  یک مخاطب را انتخاب کنید
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  برای مشاهده جزئیات روی مخاطب کلیک کنید
+                </p>
+              </Panel>
+            )}
+
+            <EasyAiCard
+              insights={[
+                "۳ مخاطب تکراری شناسایی شد.",
+                "۲ شماره موبایل ناقص است.",
+                "۵ ایمیل نامعتبر است.",
+              ]}
+              ctaLabel="بررسی توسط AI"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Contact form dialog */}
@@ -245,7 +576,30 @@ export function ContactsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSave={handleSave}
+        editData={editData}
       />
+    </div>
+  );
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  ltr,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  ltr?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <Icon className="size-3.5 shrink-0 text-slate-400" />
+      <span className="text-slate-400">{label}</span>
+      <span className="ms-auto font-semibold text-slate-700" dir={ltr ? "ltr" : undefined}>
+        {value}
+      </span>
     </div>
   );
 }
