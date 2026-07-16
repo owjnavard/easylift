@@ -31,9 +31,11 @@ export interface Elevator {
 // وضعیت تأمین کالا برای انبار پروژه
 export type SupplyStatus =
   | "main-stock" // موجود در انبار اصلی
+  | "transfer-requested" // درخواست انتقال به انبار پروژه (در انتظار تأیید مدیر)
   | "project-stock" // منتقل به انبار پروژه
   | "delivered" // تحویل پروژه شده
-  | "purchase-request"; // درخواست خرید داده شده
+  | "purchase-request" // درخواست خرید داده شده
+  | "return-requested"; // درخواست برگشت به انبار اصلی
 
 export interface PartSupply {
   elevatorId: string;
@@ -54,6 +56,18 @@ export interface Task {
   status: "pending" | "in-progress" | "done";
   dueDate: string;
   description: string;
+  stageId?: number; // مرحله برداشت که وظیفه به آن مربوط است
+  report?: string; // گزارش انجام
+}
+
+// الگوی وظیفه — برای ساخت خودکار وظایف بر اساس مرحله
+export interface TaskTemplate {
+  id: string;
+  title: string;
+  type: "instruction" | "task";
+  stageId: number; // مرحله‌ای که این الگو به آن مربوط است
+  description: string;
+  defaultAssignee: string;
 }
 
 // تعهدات قرارداد
@@ -227,19 +241,49 @@ function seed(): { projects: Project[]; elevators: Elevator[] } {
     });
   }
 
-  return { projects, elevators, tasks, commitments, supplies };
+  // الگوهای وظایف نمونه
+  const taskTemplates: TaskTemplate[] = [
+    { id: "tpl1", title: "بررسی ابعاد چاه", type: "task", stageId: 1, description: "بررسی و ثبت ابعاد چاه قبل از شروع", defaultAssignee: "مدیر فنی" },
+    { id: "tpl2", title: "دستورالعمل ایمنی چاله", type: "instruction", stageId: 1, description: "رعایت اصول ایمنی هنگام کار در چاله", defaultAssignee: "مدیر فنی" },
+    { id: "tpl3", title: "نصب تیرآهن‌ها", type: "task", stageId: 2, description: "نصب تیرآهن‌های آهنکشی موتورخانه", defaultAssignee: "پیمانکار" },
+    { id: "tpl4", title: "نصب ریل‌ها", type: "task", stageId: 3, description: "نصب ریل‌های T90 در مسیر چپ و راست", defaultAssignee: "پیمانکار" },
+    { id: "tpl5", title: "دستورالعمل تراز ریل", type: "instruction", stageId: 3, description: "کنترل تراز ریل‌ها با تراز لیزری", defaultAssignee: "مدیر فنی" },
+    { id: "tpl6", title: "نصب درب‌های طبقات", type: "task", stageId: 4, description: "نصب درب‌های اتوماتیک در تمام طبقات", defaultAssignee: "پیمانکار" },
+    { id: "tpl7", title: "نصب کابین", type: "task", stageId: 5, description: "نصب کابین و اتصال به ریل", defaultAssignee: "پیمانکار" },
+    { id: "tpl8", title: "نصب موتور و تابلو", type: "task", stageId: 6, description: "نصب موتور گیرلس و تابلو فرمان", defaultAssignee: "پیمانکار" },
+    { id: "tpl9", title: "تست راه‌اندازی", type: "task", stageId: 7, description: "تست کامل راه‌اندازی و کنترل ایمنی", defaultAssignee: "مدیر فنی" },
+    { id: "tpl10", title: "دستورالعمل تحویل موقت", type: "instruction", stageId: 7, description: "آماده‌سازی مدارک تحویل موقت", defaultAssignee: "مدیر فنی" },
+  ];
+
+  return { projects, elevators, tasks, commitments, supplies, taskTemplates };
 }
 
 interface ProjectState {
   projects: Project[];
   elevators: Elevator[];
   tasks: Task[];
+  taskTemplates: TaskTemplate[];
   commitments: Commitment[];
   supplies: PartSupply[];
   selectedProjectId: string | null;
   selectedElevatorId: string | null;
   selectProject: (id: string | null) => void;
   selectElevator: (id: string | null) => void;
+  // تأمین کالا
+  requestTransferToProject: (supplyId: string) => void;
+  approveTransferToProject: (supplyId: string) => void;
+  deliverToProject: (supplyId: string) => void;
+  returnToMainStock: (supplyId: string) => void;
+  requestPurchase: (supplyId: string) => void;
+  // وظایف
+  addTask: (task: Omit<Task, "id">) => void;
+  deleteTask: (taskId: string) => void;
+  updateTaskStatus: (taskId: string, status: Task["status"]) => void;
+  addTaskReport: (taskId: string, report: string) => void;
+  // الگوی وظایف
+  addTaskTemplate: (tpl: Omit<TaskTemplate, "id">) => void;
+  deleteTaskTemplate: (tplId: string) => void;
+  applyTemplateToElevator: (elevatorId: string, stageId: number) => void;
   createDraftProject: (input: {
     customer: string;
     address: string;
@@ -265,12 +309,114 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: seedData.projects,
   elevators: seedData.elevators,
   tasks: seedData.tasks,
+  taskTemplates: seedData.taskTemplates,
   commitments: seedData.commitments,
   supplies: seedData.supplies,
   selectedProjectId: null,
   selectedElevatorId: null,
   selectProject: (id) => set({ selectedProjectId: id }),
   selectElevator: (id) => set({ selectedElevatorId: id }),
+  // تأمین کالا — گردش کار انتقال
+  requestTransferToProject: (supplyId) =>
+    set((s) => ({
+      supplies: s.supplies.map((sp) =>
+        sp.elevatorId + sp.partId === supplyId && sp.status === "main-stock"
+          ? { ...sp, status: "transfer-requested" as SupplyStatus }
+          : sp
+      ),
+    })),
+  approveTransferToProject: (supplyId) =>
+    set((s) => ({
+      supplies: s.supplies.map((sp) =>
+        sp.elevatorId + sp.partId === supplyId && sp.status === "transfer-requested"
+          ? {
+              ...sp,
+              status: "project-stock" as SupplyStatus,
+              qtySupplied: sp.qtySupplied + sp.qtyNeeded,
+            }
+          : sp
+      ),
+    })),
+  deliverToProject: (supplyId) =>
+    set((s) => ({
+      supplies: s.supplies.map((sp) =>
+        sp.elevatorId + sp.partId === supplyId && sp.status === "project-stock"
+          ? {
+              ...sp,
+              status: "delivered" as SupplyStatus,
+              qtyDelivered: sp.qtyNeeded,
+            }
+          : sp
+      ),
+    })),
+  returnToMainStock: (supplyId) =>
+    set((s) => ({
+      supplies: s.supplies.map((sp) =>
+        sp.elevatorId + sp.partId === supplyId &&
+        (sp.status === "project-stock" || sp.status === "delivered")
+          ? {
+              ...sp,
+              status: "return-requested" as SupplyStatus,
+            }
+          : sp
+      ),
+    })),
+  requestPurchase: (supplyId) =>
+    set((s) => ({
+      supplies: s.supplies.map((sp) =>
+        sp.elevatorId + sp.partId === supplyId && sp.status === "main-stock"
+          ? { ...sp, status: "purchase-request" as SupplyStatus }
+          : sp
+      ),
+    })),
+  // وظایف — CRUD
+  addTask: (task) =>
+    set((s) => ({
+      tasks: [...s.tasks, { ...task, id: uid() }],
+    })),
+  deleteTask: (taskId) =>
+    set((s) => ({
+      tasks: s.tasks.filter((t) => t.id !== taskId),
+    })),
+  updateTaskStatus: (taskId, status) =>
+    set((s) => ({
+      tasks: s.tasks.map((t) =>
+        t.id === taskId ? { ...t, status } : t
+      ),
+    })),
+  addTaskReport: (taskId, report) =>
+    set((s) => ({
+      tasks: s.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, report, status: "done" as const }
+          : t
+      ),
+    })),
+  // الگوی وظایف
+  addTaskTemplate: (tpl) =>
+    set((s) => ({
+      taskTemplates: [...s.taskTemplates, { ...tpl, id: uid() }],
+    })),
+  deleteTaskTemplate: (tplId) =>
+    set((s) => ({
+      taskTemplates: s.taskTemplates.filter((t) => t.id !== tplId),
+    })),
+  applyTemplateToElevator: (elevatorId, stageId) =>
+    set((s) => {
+      const templates = s.taskTemplates.filter((t) => t.stageId === stageId);
+      const newTasks: Task[] = templates.map((tpl) => ({
+        id: uid(),
+        elevatorId,
+        title: tpl.title,
+        assignee: tpl.defaultAssignee,
+        type: tpl.type,
+        status: "pending",
+        dueDate: "",
+        description: tpl.description,
+        stageId,
+      }));
+      return { tasks: [...s.tasks, ...newTasks] };
+    }),
   createDraftProject: (input) => {
     const id = uid();
     const existing = get().projects.length;

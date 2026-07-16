@@ -272,3 +272,30 @@ Agent Browser verification:
 
 Stage Summary:
 - Contact form dialog implemented per mockup: multi-select groups (5 default + custom add), individual/legal toggle, 5 info tabs, avatar, all form fields.
+
+---
+Task ID: project-page-restructure-v2
+Agent: main
+Task: 5 corrections: warehouse (all+transfer flow+bulk+return), tasks (CRUD+template module), survey/calc/standard moved from elevator, elevator page deleted, technical shows only projects
+
+Work Log:
+- Extended project-store: added SupplyStatus "transfer-requested" + "return-requested", TaskTemplate interface, Task.report/stageId fields. Added store actions: requestTransferToProject, approveTransferToProject, deliverToProject, returnToMainStock, requestPurchase, addTask, deleteTask, updateTaskStatus, addTaskReport, addTaskTemplate, deleteTaskTemplate, applyTemplateToElevator. Seeded 10 task templates across 7 stages.
+- Extracted SurveyEditor component (survey-editor.tsx) — full survey UI (stages sidebar, progress donut, schematic SVG, view/edit modes, field highlighting, view-type/map-type dropdowns) reusable from project page.
+- Rewrote project-page.tsx with 9 tabs:
+  * Warehouse: "همه آسانسورها" option, 6 supply statuses, checkbox select (single+bulk), per-row action buttons (request→approve→deliver→return), bulk actions bar (transfer/return).
+  * Tasks: elevator selector (allowAll filter), add/delete task form, mark done + report dialog, apply template by stage dropdown.
+  * Survey: uses SurveyEditor component with elevator dropdown.
+  * Calc/Standard: reused from elevator (elevator dropdown + type/calc-type selection).
+- Deleted elevator-page.tsx entirely; removed from router (page.tsx) and nav.
+- Rewrote technical-page.tsx: 4 module cards (پروژه‌ها / محاسبات کالا / محاسبات استاندارد / وظایف و الگوها). Projects module shows ONLY projects (no elevator sub-rows), click → project page. New TaskTemplatesModule: template CRUD grouped by stage.
+
+Agent Browser verification:
+- Technical page: 4 module cards. Projects module shows 3 projects (no elevators). Click project → project page with 9 tabs.
+- Warehouse tab: "همه آسانسورها" option present, 6 status badges, transfer workflow tested (main-stock → click transfer → transfer-requested → click approve → project-stock confirmed).
+- Tasks tab: existing tasks shown, "وظیفه جدید" button appears after selecting elevator, add form with title/assignee/type/stage.
+- Task templates module (technical): 10 templates grouped by stage (چاله/آهنکشی/ریل/...), "الگوی جدید" button.
+- Survey tab: SurveyEditor renders (مشاهده/ویرایش toggle, مراحل ثبت اطلاعات, پیشرفت برداشت).
+- Elevator page deleted, no nav to it. 0 errors, lint clean.
+
+Stage Summary:
+- All 5 corrections implemented: warehouse with full transfer workflow + bulk + return, tasks CRUD + template module, survey/calc/standard moved to project page (per-elevator dropdown), elevator page deleted, technical shows only projects + 4th task-templates module.

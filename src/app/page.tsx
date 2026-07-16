@@ -34,7 +34,6 @@ import { QuotationsPage } from "@/components/easy-lift/pages/quotations-page";
 import { ContractsPage } from "@/components/easy-lift/pages/contracts-page";
 import { TechnicalPage } from "@/components/easy-lift/pages/technical-page";
 import { ProjectPage } from "@/components/easy-lift/pages/project-page";
-import { ElevatorPage } from "@/components/easy-lift/pages/elevator-page";
 import { CommercePage } from "@/components/easy-lift/pages/commerce-page";
 import { AccountingPage } from "@/components/easy-lift/pages/accounting-page";
 import { WarehousePage } from "@/components/easy-lift/pages/warehouse-page";
@@ -67,8 +66,6 @@ function PageRouter() {
       return <TechnicalPage />;
     case "project":
       return <ProjectPage />;
-    case "elevator":
-      return <ElevatorPage />;
     case "commerce":
       return <CommercePage />;
     case "accounting":
