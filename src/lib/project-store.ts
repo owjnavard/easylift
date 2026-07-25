@@ -286,6 +286,7 @@ interface ProjectState {
   applyTemplateToElevator: (elevatorId: string, stageId: number) => void;
   createDraftProject: (input: {
     customer: string;
+    projectName?: string;
     address: string;
     buildingType: string;
     floors: number;
@@ -424,7 +425,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const project: Project = {
       id,
       code: `P-${codeNum.toLocaleString("fa-IR")}`,
-      name: `پروژه ${input.customer}`,
+      name: input.projectName?.trim() || `پروژه ${input.customer}`,
       customer: input.customer,
       address: input.address,
       buildingType: input.buildingType,

@@ -21,15 +21,15 @@ import {
   useQuotations,
   STAGE_LABELS,
   STAGE_SHORT,
-  type QuotationRequest,
+  REQUESTER_LABELS,
 } from "@/lib/quotations-store";
 
 interface Row {
   id: string;
   code: string;
   customer: string;
-  elevators: number;
-  floors: number;
+  projectName: string;
+  requester: string;
   stage: number;
   status: string;
   createdAt: string;
@@ -43,9 +43,9 @@ export function RequestListView() {
   const rows: Row[] = requests.map((r) => ({
     id: r.id,
     code: r.code,
-    customer: r.customer,
-    elevators: r.building.elevatorCount,
-    floors: r.building.floors,
+    customer: r.customer || "—",
+    projectName: r.projectName || "—",
+    requester: `${REQUESTER_LABELS[r.requester]}${r.requesterName ? ` — ${r.requesterName}` : ""}`,
     stage: r.stage,
     status: r.status,
     createdAt: r.createdAt,
@@ -72,8 +72,18 @@ export function RequestListView() {
         <span className="font-semibold text-slate-800">{r.customer}</span>
       ),
     },
-    { key: "floors", header: "طبقات", align: "center" },
-    { key: "elevators", header: "آسانسور", align: "center" },
+    {
+      key: "projectName",
+      header: "نام پروژه",
+      align: "center",
+      render: (r) => <span className="text-slate-600">{r.projectName}</span>,
+    },
+    {
+      key: "requester",
+      header: "درخواست‌کننده",
+      align: "center",
+      render: (r) => <span className="text-xs text-slate-500">{r.requester}</span>,
+    },
     {
       key: "stage",
       header: "مرحله",
@@ -98,13 +108,14 @@ export function RequestListView() {
   ];
 
   function newRequest() {
+    // درخواست‌کننده هنگام ثبت از پنل داخلی، «کاربر داخلی» است
     const id = createRequest({
       requester: "internal",
       requesterName: "احمدی",
       customer: "",
+      projectName: "",
       address: "",
-      buildingType: "مسکونی",
-      building: { floors: 8, unitsPerFloor: 4, elevatorCount: 1 },
+      representatives: [],
     });
     select(id);
   }

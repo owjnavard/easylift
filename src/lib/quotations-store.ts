@@ -28,6 +28,20 @@ export interface HistoryEntry {
   stage: Stage;
 }
 
+// نماینده کارفرما
+export interface Representative {
+  id: string;
+  name: string;
+  role: string; // سمت در پروژه
+  phone: string; // شماره تماس
+}
+
+// موقعیت جغرافیایی ساختمان (انتخاب از روی نقشه)
+export interface GeoLocation {
+  lat: number;
+  lng: number;
+}
+
 export interface QuotationRequest {
   id: string;
   code: string;
@@ -37,7 +51,11 @@ export interface QuotationRequest {
   projectId: string; // 🔗 پروژه مرتبط در بخش فنی و مهندسی
   // مرحله ۱
   customer: string;
+  customerId?: string; // 🔗 مخاطب مرتبط در دفترچه مخاطبین
+  projectName: string; // نام پروژه
   address: string;
+  location?: GeoLocation; // موقعیت روی نقشه
+  representatives: Representative[]; // نمایندگان کارفرما
   buildingType: string;
   building: { floors: number; unitsPerFloor: number; elevatorCount: number };
   createdAt: string;
@@ -76,10 +94,13 @@ function seed(): QuotationRequest[] {
     code,
     stage,
     requester,
-    requesterName: requester === "customer" ? customer : "احمدی",
+    requesterName: requester === "customer" ? customer : requester === "marketer" ? "محمد احمدی" : "احمدی",
     projectId,
     customer,
+    projectName: `پروژه ${customer}`,
     address: "تهران، شهرک غرب",
+    location: { lat: 35.7448, lng: 51.3753 },
+    representatives: [],
     buildingType: "مسکونی",
     building: { floors, unitsPerFloor: 4, elevatorCount: elev },
     createdAt: now(),
@@ -113,9 +134,11 @@ interface QuotationsState {
     requester: RequesterType;
     requesterName: string;
     customer: string;
+    customerId?: string;
+    projectName: string;
     address: string;
-    buildingType: string;
-    building: { floors: number; unitsPerFloor: number; elevatorCount: number };
+    location?: GeoLocation;
+    representatives: Representative[];
   }) => string;
   updateRequest: (id: string, patch: Partial<QuotationRequest>) => void;
   setPartBrand: (id: string, partId: string, brandId: string | null) => void;
@@ -147,13 +170,16 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
     const id = uid();
     const code = nextCode(get().requests);
     // 🔗 ایجاد پروژه موقت (Draft) در بخش فنی و مهندسی
+    // مقادیر ساختمان با پیش‌فرض ایجاد می‌شوند و در مرحله برداشت فنی تکمیل می‌گردند
+    const defaultBuilding = { floors: 8, unitsPerFloor: 4, elevatorCount: 1 };
     const projectId = useProjectStore.getState().createDraftProject({
       customer: input.customer,
+      projectName: input.projectName,
       address: input.address,
-      buildingType: input.buildingType,
-      floors: input.building.floors,
-      unitsPerFloor: input.building.unitsPerFloor,
-      elevatorCount: input.building.elevatorCount,
+      buildingType: "—",
+      floors: defaultBuilding.floors,
+      unitsPerFloor: defaultBuilding.unitsPerFloor,
+      elevatorCount: defaultBuilding.elevatorCount,
       quotationId: id,
     });
     const req: QuotationRequest = {
@@ -164,9 +190,13 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
       requesterName: input.requesterName,
       projectId,
       customer: input.customer,
+      customerId: input.customerId,
+      projectName: input.projectName,
       address: input.address,
-      buildingType: input.buildingType,
-      building: input.building,
+      location: input.location,
+      representatives: input.representatives,
+      buildingType: "—",
+      building: defaultBuilding,
       createdAt: now(),
       partBrands: {},
       extras: [],

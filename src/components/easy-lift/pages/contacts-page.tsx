@@ -28,89 +28,14 @@ import {
   ContactFormDialog,
   type ContactFormData,
 } from "@/components/easy-lift/contacts/contact-form-dialog";
-import { DEFAULT_GROUPS, type PersonType } from "@/lib/contact-groups";
+import { DEFAULT_GROUPS } from "@/lib/contact-groups";
+import { useContacts, type Contact } from "@/lib/contacts-store";
 import { cn } from "@/lib/utils";
 
-interface Contact {
-  id: string;
-  name: string;
-  group: string;
-  groupIds: string[];
-  phone: string;
-  mobile: string;
-  email: string;
-  city: string;
-  address: string;
-  projects: number;
-  status: "active" | "partner";
-  personType: PersonType;
-  formData: ContactFormData;
-}
-
-function seedContacts(): Contact[] {
-  const mk = (
-    id: string,
-    name: string,
-    groupIds: string[],
-    phone: string,
-    city: string,
-    projects: number,
-    status: "active" | "partner",
-    personType: PersonType = "legal"
-  ): Contact => {
-    const formData: ContactFormData = {
-      personType,
-      groups: groupIds,
-      firstName: personType === "individual" ? name.split(" ")[0] : "",
-      lastName: personType === "individual" ? name.split(" ")[1] ?? "" : "",
-      fatherName: "",
-      companyName: personType === "legal" ? name : "",
-      customerType: "عادی",
-      description: "",
-      taxType: "",
-      taxCode: "",
-      postalCode: "",
-      idNumber: "",
-      nationalId: "",
-      accountNumber: "",
-      iban: "",
-      phone,
-      mobile: "",
-      email: "",
-      city,
-      address: "",
-    };
-    return {
-      id,
-      name,
-      group: groupIds
-        .map((gid) => DEFAULT_GROUPS.find((g) => g.id === gid)?.label ?? gid)
-        .join("، "),
-      groupIds,
-      phone,
-      mobile: "",
-      email: "",
-      city,
-      address: "",
-      projects,
-      status,
-      personType,
-      formData,
-    };
-  };
-
-  return [
-    mk("1", "شرکت پارسیان", ["customer"], "02188776655", "تهران", 8, "active"),
-    mk("2", "آسانبر نوین", ["supplier"], "02122334455", "اصفهان", 12, "partner"),
-    mk("3", "برج آریا", ["customer"], "02144556677", "تهران", 3, "active"),
-    mk("4", "سپهر آسانسور", ["supplier"], "03155667788", "اصفهان", 9, "partner"),
-    mk("5", "پارس لیفت", ["supplier"], "02166778899", "کرج", 6, "active"),
-    mk("6", "محمد احمدی", ["staff", "marketer"], "09123456789", "تهران", 0, "active", "individual"),
-  ];
-}
-
 export function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>(seedContacts);
+  const contacts = useContacts((s) => s.contacts);
+  const addContact = useContacts((s) => s.addContact);
+  const updateContact = useContacts((s) => s.updateContact);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<ContactFormData | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -143,54 +68,10 @@ export function ContactsPage() {
   }
 
   function handleSave(data: ContactFormData) {
-    const name =
-      data.personType === "individual"
-        ? `${data.firstName} ${data.lastName}`.trim() || "بدون نام"
-        : data.companyName || "بدون نام";
-    const groupLabel =
-      data.groups
-        .map((gid) => DEFAULT_GROUPS.find((g) => g.id === gid)?.label ?? gid)
-        .join("، ") || "—";
-
     if (editingId) {
-      // ویرایش
-      setContacts((prev) =>
-        prev.map((c) =>
-          c.id === editingId
-            ? {
-                ...c,
-                name,
-                group: groupLabel,
-                groupIds: data.groups,
-                phone: data.phone || data.mobile || "—",
-                mobile: data.mobile,
-                email: data.email,
-                city: data.city || "—",
-                address: data.address,
-                personType: data.personType,
-                formData: data,
-              }
-            : c
-        )
-      );
+      updateContact(editingId, data);
     } else {
-      // ایجاد جدید
-      const newContact: Contact = {
-        id: `c-${Date.now()}`,
-        name,
-        group: groupLabel,
-        groupIds: data.groups,
-        phone: data.phone || data.mobile || "—",
-        mobile: data.mobile,
-        email: data.email,
-        city: data.city || "—",
-        address: data.address,
-        projects: 0,
-        status: "active",
-        personType: data.personType,
-        formData: data,
-      };
-      setContacts((prev) => [newContact, ...prev]);
+      addContact(data);
     }
   }
 
