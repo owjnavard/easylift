@@ -4,6 +4,17 @@ import { useProjectStore } from "./project-store";
 export type Stage = 1 | 2 | 3 | 4;
 export type RequesterType = "marketer" | "customer" | "internal";
 
+// وضعیت پیش‌فاکتور (مستقل از مرحله گردش‌کار)
+// draft: پیش‌نویس • in_progress: در حال انجام • approved: تأیید شده • rejected: تأیید نشده
+export type QuoteStatus = "draft" | "in_progress" | "approved" | "rejected";
+
+// اطلاعات رد درخواست
+export interface Rejection {
+  reason: string;
+  by: string;
+  at: string;
+}
+
 export interface ExtraCost {
   id: string;
   label: string;
