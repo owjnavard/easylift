@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   PackageOpen,
   Truck,
@@ -9,6 +10,7 @@ import {
   Plus,
   Warehouse,
 } from "lucide-react";
+import { ProductForm, type ProductDraft } from "@/components/easy-lift/warehouse/product-form";
 import {
   EasyAiCard,
   PageHeader,
@@ -85,14 +87,28 @@ const quickActions = [
 ];
 
 export function WarehousePage() {
+  const [formOpen, setFormOpen] = useState(false);
+
+  const handleSave = (product: ProductDraft) => {
+    // در اینجا می‌توان داده را به store یا API ارسال کرد
+    void product;
+  };
+
   return (
-    <div>
+    <>
+      <ProductForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleSave}
+      />
+      <div>
       <PageHeader
         icon={Warehouse}
         title="مدیریت انبار"
         subtitle="مدیریت کالا، ورود و خروج، موجودی و حواله‌ها"
         searchPlaceholder="جستجوی کالا..."
         actionLabel="ثبت کالا"
+        onAction={() => setFormOpen(true)}
       />
 
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
@@ -192,7 +208,8 @@ export function WarehousePage() {
           </Panel>
         </section>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
