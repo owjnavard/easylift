@@ -11,6 +11,10 @@ import {
   Warehouse,
 } from "lucide-react";
 import { ProductForm, type ProductDraft } from "@/components/easy-lift/warehouse/product-form";
+import { GoodsInForm, type GoodsInDraft } from "@/components/easy-lift/warehouse/goods-in-form";
+import { GoodsOutForm, type GoodsOutDraft } from "@/components/easy-lift/warehouse/goods-out-form";
+import { TransferForm, type TransferDraft } from "@/components/easy-lift/warehouse/transfer-form";
+import { StocktakingForm, type StocktakingDraft } from "@/components/easy-lift/warehouse/stocktaking-form";
 import {
   EasyAiCard,
   PageHeader,
@@ -78,29 +82,27 @@ const columns: Column<Item>[] = [
   },
 ];
 
-const quickActions = [
-  { icon: PackageOpen, label: "ورود کالا", tone: "text-emerald-600 bg-emerald-50" },
-  { icon: Truck, label: "خروج کالا", tone: "text-rose-600 bg-rose-50" },
-  { icon: ArrowRightLeft, label: "انتقال", tone: "text-sky-600 bg-sky-50" },
-  { icon: ClipboardCheck, label: "انبارگردانی", tone: "text-amber-600 bg-amber-50" },
-  { icon: QrCode, label: "بارکد", tone: "text-violet-600 bg-violet-50" },
-];
 
 export function WarehousePage() {
   const [formOpen, setFormOpen] = useState(false);
+  const [goodsInOpen, setGoodsInOpen] = useState(false);
+  const [goodsOutOpen, setGoodsOutOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [stocktakingOpen, setStocktakingOpen] = useState(false);
 
-  const handleSave = (product: ProductDraft) => {
-    // در اینجا می‌توان داده را به store یا API ارسال کرد
-    void product;
-  };
+  const handleSave = (product: ProductDraft) => { void product; };
+  const handleGoodsIn = (d: GoodsInDraft) => { void d; };
+  const handleGoodsOut = (d: GoodsOutDraft) => { void d; };
+  const handleTransfer = (d: TransferDraft) => { void d; };
+  const handleStocktaking = (d: StocktakingDraft) => { void d; };
 
   return (
     <>
-      <ProductForm
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSave={handleSave}
-      />
+      <ProductForm open={formOpen} onClose={() => setFormOpen(false)} onSave={handleSave} />
+      <GoodsInForm open={goodsInOpen} onClose={() => setGoodsInOpen(false)} onSave={handleGoodsIn} />
+      <GoodsOutForm open={goodsOutOpen} onClose={() => setGoodsOutOpen(false)} onSave={handleGoodsOut} />
+      <TransferForm open={transferOpen} onClose={() => setTransferOpen(false)} onSave={handleTransfer} />
+      <StocktakingForm open={stocktakingOpen} onClose={() => setStocktakingOpen(false)} onSave={handleStocktaking} />
       <div>
       <PageHeader
         icon={Warehouse}
@@ -120,9 +122,16 @@ export function WarehousePage() {
         </section>
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {quickActions.map((a) => (
+          {[
+            { icon: PackageOpen, label: "ورود کالا", tone: "text-emerald-600 bg-emerald-50", onClick: () => setGoodsInOpen(true) },
+            { icon: Truck,       label: "خروج کالا", tone: "text-rose-600 bg-rose-50",       onClick: () => setGoodsOutOpen(true) },
+            { icon: ArrowRightLeft, label: "انتقال", tone: "text-sky-600 bg-sky-50",         onClick: () => setTransferOpen(true) },
+            { icon: ClipboardCheck, label: "انبارگردانی", tone: "text-amber-600 bg-amber-50", onClick: () => setStocktakingOpen(true) },
+            { icon: QrCode, label: "بارکد", tone: "text-violet-600 bg-violet-50",            onClick: () => {} },
+          ].map((a) => (
             <button
               key={a.label}
+              onClick={a.onClick}
               className="el-card-hover flex flex-col items-center gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 text-center shadow-sm"
             >
               <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
