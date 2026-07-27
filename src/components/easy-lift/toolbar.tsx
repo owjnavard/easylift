@@ -25,12 +25,18 @@ export function Toolbar({
 export function FilterSelect({
   children,
   className,
+  value,
+  onChange,
 }: {
   children: React.ReactNode;
   className?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   return (
     <select
+      value={value}
+      onChange={onChange}
       className={cn(
         "rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-600 outline-none transition hover:bg-slate-50 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100",
         className

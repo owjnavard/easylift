@@ -17,6 +17,8 @@ import {
   Phone,
   Briefcase,
   Search,
+  Layers,
+  Pencil,
 } from "lucide-react";
 import { Panel } from "@/components/easy-lift";
 import {
@@ -24,6 +26,7 @@ import {
   REQUESTER_LABELS,
   type Representative,
   type GeoLocation,
+  type ElevatorInfo,
 } from "@/lib/quotations-store";
 import { useContacts } from "@/lib/contacts-store";
 import {
@@ -47,6 +50,13 @@ function faDate(iso: string) {
   }
 }
 
+function buildElevators(count: number): ElevatorInfo[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: uid(),
+    name: `آسانسور ${(i + 1).toLocaleString("fa-IR")}`,
+  }));
+}
+
 export function Step1Request({ id }: { id: string }) {
   const req = useQuotations((s) => s.requests.find((r) => r.id === id)!);
   const updateRequest = useQuotations((s) => s.updateRequest);
@@ -57,6 +67,12 @@ export function Step1Request({ id }: { id: string }) {
   const [customerId, setCustomerId] = useState(req.customerId ?? "");
   const [customer, setCustomer] = useState(req.customer);
   const [projectName, setProjectName] = useState(req.projectName);
+
+  // آسانسورها
+  const [elevators, setElevators] = useState<ElevatorInfo[]>(
+    req.elevators?.length ? req.elevators : buildElevators(1)
+  );
+
   const [address, setAddress] = useState(req.address);
   const [location, setLocation] = useState<GeoLocation | undefined>(req.location);
   const [representatives, setRepresentatives] = useState<Representative[]>(
@@ -77,6 +93,26 @@ export function Step1Request({ id }: { id: string }) {
     pickContact(c.id, c.name);
   }
 
+  // --- مدیریت آسانسورها ---
+  function setElevatorCount(count: number) {
+    const n = Math.max(1, Math.min(20, count));
+    setElevators((prev) => {
+      if (n > prev.length) {
+        const extras = Array.from({ length: n - prev.length }, (_, i) => ({
+          id: uid(),
+          name: `آسانسور ${(prev.length + i + 1).toLocaleString("fa-IR")}`,
+        }));
+        return [...prev, ...extras];
+      }
+      return prev.slice(0, n);
+    });
+  }
+
+  function updateElevatorName(eid: string, name: string) {
+    setElevators((prev) => prev.map((e) => (e.id === eid ? { ...e, name } : e)));
+  }
+
+  // --- مدیریت نمایندگان ---
   function addRep() {
     setRepresentatives((r) => [
       ...r,
@@ -97,6 +133,11 @@ export function Step1Request({ id }: { id: string }) {
       customer,
       customerId: customerId || undefined,
       projectName,
+      elevators,
+      building: {
+        ...req.building,
+        elevatorCount: elevators.length,
+      },
       address,
       location,
       representatives: representatives.filter(
@@ -108,7 +149,7 @@ export function Step1Request({ id }: { id: string }) {
 
   return (
     <Panel className="p-5 sm:p-6">
-      {/* header: شماره و تاریخ */}
+      {/* header */}
       <div className="mb-5 flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-base font-bold text-slate-900">ثبت درخواست پیش‌فاکتور</h3>
@@ -131,7 +172,7 @@ export function Step1Request({ id }: { id: string }) {
       </div>
 
       <div className="space-y-5">
-        {/* درخواست‌کننده — غیرقابل انتخاب، خودکار تعیین می‌شود */}
+        {/* درخواست‌کننده */}
         <FieldGroup label="درخواست‌کننده" icon={User}>
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
             <span
@@ -174,6 +215,61 @@ export function Step1Request({ id }: { id: string }) {
               className={cn(inputCls, !projectName.trim() && "border-rose-200 bg-rose-50/40")}
             />
           </FieldGroup>
+        </div>
+
+        {/* تعداد و نام آسانسورها — قبل از آدرس */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <Layers className="size-4 text-emerald-600" />
+              آسانسورها
+              <span className="rounded-full bg-emerald-100 px-1.5 text-[10px] text-emerald-700">
+                {elevators.length.toLocaleString("fa-IR")} دستگاه
+              </span>
+            </div>
+            {/* کنترل تعداد */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setElevatorCount(elevators.length - 1)}
+                disabled={elevators.length <= 1}
+                className="grid size-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 text-sm font-bold"
+                aria-label="کاهش تعداد آسانسور"
+              >
+                −
+              </button>
+              <span className="w-8 text-center text-sm font-bold text-slate-800">
+                {elevators.length.toLocaleString("fa-IR")}
+              </span>
+              <button
+                type="button"
+                onClick={() => setElevatorCount(elevators.length + 1)}
+                disabled={elevators.length >= 20}
+                className="grid size-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 text-sm font-bold"
+                aria-label="افزایش تعداد آسانسور"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* نام هر آسانسور */}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {elevators.map((elev, idx) => (
+              <div key={elev.id} className="relative">
+                <Pencil className="pointer-events-none absolute right-2.5 top-1/2 size-3 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={elev.name}
+                  onChange={(e) => updateElevatorName(elev.id, e.target.value)}
+                  placeholder={`آسانسور ${(idx + 1).toLocaleString("fa-IR")}`}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-7 pl-3 text-xs outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-slate-400">
+            نام هر آسانسور را می‌توانید ویرایش کنید — این اطلاعات در مراحل بعدی استفاده می‌شود.
+          </p>
         </div>
 
         {/* آدرس ساختمان + نقشه */}
@@ -261,7 +357,9 @@ export function Step1Request({ id }: { id: string }) {
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium">{req.code}</span>
           <span>•</span>
-          <span>وضعیت: Draft</span>
+          <span>وضعیت: پیش‌نویس</span>
+          <span>•</span>
+          <span>{elevators.length.toLocaleString("fa-IR")} آسانسور</span>
         </div>
         <button
           onClick={next}

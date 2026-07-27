@@ -4,8 +4,11 @@ import { useProjectStore } from "./project-store";
 export type Stage = 1 | 2 | 3 | 4;
 export type RequesterType = "marketer" | "customer" | "internal";
 
-// وضعیت پیش‌فاکتور (مستقل از مرحله گردش‌کار)
-// draft: پیش‌نویس • in_progress: در حال انجام • approved: تأیید شده • rejected: تأیید نشده
+// وضعیت پیش‌فاکتور
+// draft: پیش‌نویس (مرحله ثبت درخواست)
+// in_progress: در حال انجام (مرحله صدور پیش‌فاکتور)
+// approved: تأیید شده (تبدیل به قرارداد)
+// rejected: تأیید نشده (رد درخواست)
 export type QuoteStatus = "draft" | "in_progress" | "approved" | "rejected";
 
 // اطلاعات رد درخواست
@@ -53,25 +56,34 @@ export interface GeoLocation {
   lng: number;
 }
 
+// مشخصات هر آسانسور
+export interface ElevatorInfo {
+  id: string;
+  name: string; // نام/شناسه آسانسور مثلاً "آسانسور ۱"
+}
+
 export interface QuotationRequest {
   id: string;
   code: string;
   stage: Stage;
+  quoteStatus: QuoteStatus; // وضعیت پیش‌فاکتور (مستقل از stage)
+  rejection?: Rejection;    // جزئیات رد درخواست
   requester: RequesterType;
   requesterName: string;
-  projectId: string; // 🔗 پروژه مرتبط در بخش فنی و مهندسی
+  projectId: string;
   // مرحله ۱
   customer: string;
-  customerId?: string; // 🔗 مخاطب مرتبط در دفترچه مخاطبین
-  projectName: string; // نام پروژه
+  customerId?: string;
+  projectName: string;
+  elevators: ElevatorInfo[]; // لیست آسانسورها با نام
   address: string;
-  location?: GeoLocation; // موقعیت روی نقشه
-  representatives: Representative[]; // نمایندگان کارفرما
+  location?: GeoLocation;
+  representatives: Representative[];
   buildingType: string;
   building: { floors: number; unitsPerFloor: number; elevatorCount: number };
   createdAt: string;
-  // مرحله ۲ — برندها و هزینه‌ها روی پیش‌فاکتور
-  partBrands: Record<string, string>; // partId -> brandId
+  // مرحله ۲
+  partBrands: Record<string, string>;
   extras: ExtraCost[];
   profitPercent: number;
   discountAmount: number;
@@ -89,6 +101,13 @@ export interface QuotationRequest {
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+function buildElevators(count: number): ElevatorInfo[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: uid(),
+    name: `آسانسور ${(i + 1).toLocaleString("fa-IR")}`,
+  }));
+}
+
 function seed(): QuotationRequest[] {
   const mk = (
     id: string,
@@ -99,16 +118,19 @@ function seed(): QuotationRequest[] {
     floors: number,
     elev: number,
     requester: RequesterType,
+    quoteStatus: QuoteStatus = "draft",
     status: "draft" | "active" = "draft"
   ): QuotationRequest => ({
     id,
     code,
     stage,
+    quoteStatus,
     requester,
     requesterName: requester === "customer" ? customer : requester === "marketer" ? "محمد احمدی" : "احمدی",
     projectId,
     customer,
     projectName: `پروژه ${customer}`,
+    elevators: buildElevators(elev),
     address: "تهران، شهرک غرب",
     location: { lat: 35.7448, lng: 51.3753 },
     representatives: [],
@@ -126,15 +148,19 @@ function seed(): QuotationRequest[] {
     ],
   });
 
-  const r1 = mk("q-14025", "PF-14025", 2, "p-parsian", "شرکت پارسیان", 12, 4, "marketer");
+  const r1 = mk("q-14025", "PF-14025", 2, "p-parsian", "شرکت پارسیان", 12, 4, "marketer", "in_progress");
   r1.history.push({ id: uid(), at: now(), actor: "مدیر فنی", action: "تکمیل برداشت اطلاعات آسانسورها", stage: 1 });
 
-  const r2 = mk("q-14024", "PF-14024", 1, "p-almas", "برج الماس", 8, 2, "internal");
+  const r2 = mk("q-14024", "PF-14024", 1, "p-almas", "برج الماس", 8, 2, "internal", "draft");
 
-  const r3 = mk("q-14023", "PF-14023", 4, "p-sepehr", "سپهر گروپ", 6, 1, "customer", "active");
+  const r3 = mk("q-14023", "PF-14023", 4, "p-sepehr", "سپهر گروپ", 6, 1, "customer", "approved", "active");
   r3.activatedAt = now();
 
-  return [r1, r2, r3];
+  const r4 = mk("q-14022", "PF-14022", 1, "p-aryan", "آریان ساز", 5, 2, "marketer", "rejected");
+  r4.rejection = { reason: "بودجه پروژه تأمین نشد", by: "کارفرما", at: now() };
+  r4.history.push({ id: uid(), at: now(), actor: "کارفرما", action: "رد درخواست پیش‌فاکتور", detail: "بودجه پروژه تأمین نشد", stage: 1 });
+
+  return [r1, r2, r3, r4];
 }
 
 interface QuotationsState {
@@ -147,11 +173,14 @@ interface QuotationsState {
     customer: string;
     customerId?: string;
     projectName: string;
+    elevators: ElevatorInfo[];
     address: string;
     location?: GeoLocation;
     representatives: Representative[];
   }) => string;
   updateRequest: (id: string, patch: Partial<QuotationRequest>) => void;
+  deleteRequest: (id: string) => void;
+  rejectRequest: (id: string, reason: string, by: string) => void;
   setPartBrand: (id: string, partId: string, brandId: string | null) => void;
   addExtra: (id: string, label: string, amount: number) => void;
   removeExtra: (id: string, extraId: string) => void;
@@ -173,6 +202,14 @@ function nextCode(reqs: QuotationRequest[]): string {
   return `PF-${max + 1}`;
 }
 
+// محاسبه quoteStatus بر اساس stage
+function stageToQuoteStatus(stage: Stage): QuoteStatus {
+  if (stage === 1) return "draft";
+  if (stage === 2) return "in_progress";
+  if (stage >= 3) return "approved";
+  return "draft";
+}
+
 export const useQuotations = create<QuotationsState>((set, get) => ({
   requests: seed(),
   selectedId: null,
@@ -180,9 +217,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
   createRequest: (input) => {
     const id = uid();
     const code = nextCode(get().requests);
-    // 🔗 ایجاد پروژه موقت (Draft) در بخش فنی و مهندسی
-    // مقادیر ساختمان با پیش‌فرض ایجاد می‌شوند و در مرحله برداشت فنی تکمیل می‌گردند
-    const defaultBuilding = { floors: 8, unitsPerFloor: 4, elevatorCount: 1 };
+    const defaultBuilding = { floors: 8, unitsPerFloor: 4, elevatorCount: input.elevators.length || 1 };
     const projectId = useProjectStore.getState().createDraftProject({
       customer: input.customer,
       projectName: input.projectName,
@@ -197,12 +232,14 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
       id,
       code,
       stage: 1,
+      quoteStatus: "draft",
       requester: input.requester,
       requesterName: input.requesterName,
       projectId,
       customer: input.customer,
       customerId: input.customerId,
       projectName: input.projectName,
+      elevators: input.elevators,
       address: input.address,
       location: input.location,
       representatives: input.representatives,
@@ -221,7 +258,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
           at: now(),
           actor: input.requesterName,
           action: "ثبت درخواست پیش‌فاکتور",
-          detail: `مشتری: ${input.customer} • پروژه موقت ایجاد شد`,
+          detail: `مشتری: ${input.customer} • ${(input.elevators.length || 1).toLocaleString("fa-IR")} آسانسور • پروژه موقت ایجاد شد`,
           stage: 1,
         },
       ],
@@ -232,6 +269,34 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
   updateRequest: (id, patch) =>
     set((s) => ({
       requests: s.requests.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    })),
+  deleteRequest: (id) =>
+    set((s) => ({
+      requests: s.requests.filter((r) => r.id !== id),
+      selectedId: s.selectedId === id ? null : s.selectedId,
+    })),
+  rejectRequest: (id, reason, by) =>
+    set((s) => ({
+      requests: s.requests.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              quoteStatus: "rejected" as QuoteStatus,
+              rejection: { reason, by, at: now() },
+              history: [
+                ...r.history,
+                {
+                  id: uid(),
+                  at: now(),
+                  actor: by,
+                  action: "رد درخواست پیش‌فاکتور",
+                  detail: reason,
+                  stage: r.stage,
+                },
+              ],
+            }
+          : r
+      ),
     })),
   setPartBrand: (id, partId, brandId) =>
     set((s) => ({
@@ -283,6 +348,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
               ...r,
               approvedByCustomer: true,
               stage: Math.max(r.stage, 3) as Stage,
+              quoteStatus: "approved" as QuoteStatus,
               history: [
                 ...r.history,
                 {
@@ -307,6 +373,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
               ...r,
               contract,
               stage: Math.max(r.stage, 3) as Stage,
+              quoteStatus: "approved" as QuoteStatus,
               history: [
                 ...r.history,
                 {
@@ -350,7 +417,6 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
   activate: (id) => {
     const req = get().requests.find((r) => r.id === id);
     if (!req) return;
-    // 🔗 فعال‌سازی پروژه مرتبط در بخش فنی و مهندسی
     useProjectStore.getState().activateProject(req.projectId);
     set((s) => ({
       requests: s.requests.map((r) =>
@@ -359,6 +425,7 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
               ...r,
               status: "active",
               stage: 4,
+              quoteStatus: "approved" as QuoteStatus,
               activatedAt: now(),
               history: [
                 ...r.history,
@@ -378,7 +445,19 @@ export const useQuotations = create<QuotationsState>((set, get) => ({
   },
   goToStage: (id, stage) =>
     set((s) => ({
-      requests: s.requests.map((r) => (r.id === id ? { ...r, stage } : r)),
+      requests: s.requests.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              stage,
+              // وقتی به صدور پیش‌فاکتور رفتیم، وضعیت را in_progress کن (اگر رد نشده)
+              quoteStatus:
+                r.quoteStatus === "rejected"
+                  ? "rejected"
+                  : stageToQuoteStatus(stage),
+            }
+          : r
+      ),
     })),
   log: (id, actor, action, detail) =>
     set((s) => ({
@@ -414,4 +493,21 @@ export const REQUESTER_LABELS: Record<RequesterType, string> = {
   marketer: "بازاریاب",
   customer: "مشتری",
   internal: "کاربر داخلی",
+};
+
+export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
+  draft: "پیش‌نویس",
+  in_progress: "در حال انجام",
+  approved: "تایید شده",
+  rejected: "تایید نشده",
+};
+
+export const QUOTE_STATUS_TONE: Record<
+  QuoteStatus,
+  "slate" | "amber" | "emerald" | "rose"
+> = {
+  draft: "slate",
+  in_progress: "amber",
+  approved: "emerald",
+  rejected: "rose",
 };
