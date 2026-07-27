@@ -11,14 +11,10 @@ import {
   ArrowLeft,
   Pencil,
   Trash2,
-  MoreHorizontal,
-  Filter,
   AlertCircle,
 } from "lucide-react";
 import {
   PageHeader,
-  Toolbar,
-  FilterSelect,
   DataTable,
   StatusBadge,
   type Column,
@@ -142,7 +138,6 @@ export function RequestListView() {
 
   // فیلتر
   const [filterStatus, setFilterStatus] = useState<QuoteStatus | "all">("all");
-  const [filterStage, setFilterStage] = useState<string>("all");
 
   // دیالوگ ویرایش و حذف
   const [editId, setEditId] = useState<string | null>(null);
@@ -151,7 +146,6 @@ export function RequestListView() {
   // اعمال فیلتر
   const filtered = requests.filter((r) => {
     if (filterStatus !== "all" && r.quoteStatus !== filterStatus) return false;
-    if (filterStage !== "all" && String(r.stage) !== filterStage) return false;
     return true;
   });
 
@@ -283,59 +277,72 @@ export function RequestListView() {
       />
 
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
-        {/* KPI — وضعیت‌های پیش‌فاکتور */}
+        {/* KPI — وضعیت‌های پیش‌فاکتور (کلیک برای فیلتر) */}
         <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <KpiCard tone="slate" label="پیش‌نویس" value={draft.toLocaleString("fa-IR")} icon={FileText} />
-          <KpiCard tone="amber" label="در حال انجام" value={inProgress.toLocaleString("fa-IR")} icon={Clock} />
-          <KpiCard tone="hero" label="تایید شده" value={approved.toLocaleString("fa-IR")} icon={CheckCircle2} />
-          <KpiCard tone="sky" label="تایید نشده" value={rejected.toLocaleString("fa-IR")} icon={XCircle} />
+          <button
+            type="button"
+            onClick={() => setFilterStatus(filterStatus === "draft" ? "all" : "draft")}
+            className="text-right transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl"
+            style={{ opacity: filterStatus !== "all" && filterStatus !== "draft" ? 0.45 : 1 }}
+          >
+            <KpiCard
+              tone="slate"
+              label="پیش‌نویس"
+              value={draft.toLocaleString("fa-IR")}
+              icon={FileText}
+              active={filterStatus === "draft"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus(filterStatus === "in_progress" ? "all" : "in_progress")}
+            className="text-right transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl"
+            style={{ opacity: filterStatus !== "all" && filterStatus !== "in_progress" ? 0.45 : 1 }}
+          >
+            <KpiCard
+              tone="amber"
+              label="در حال انجام"
+              value={inProgress.toLocaleString("fa-IR")}
+              icon={Clock}
+              active={filterStatus === "in_progress"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus(filterStatus === "approved" ? "all" : "approved")}
+            className="text-right transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl"
+            style={{ opacity: filterStatus !== "all" && filterStatus !== "approved" ? 0.45 : 1 }}
+          >
+            <KpiCard
+              tone="hero"
+              label="تایید شده"
+              value={approved.toLocaleString("fa-IR")}
+              icon={CheckCircle2}
+              active={filterStatus === "approved"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterStatus(filterStatus === "rejected" ? "all" : "rejected")}
+            className="text-right transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl"
+            style={{ opacity: filterStatus !== "all" && filterStatus !== "rejected" ? 0.45 : 1 }}
+          >
+            <KpiCard
+              tone="sky"
+              label="تایید نشده"
+              value={rejected.toLocaleString("fa-IR")}
+              icon={XCircle}
+              active={filterStatus === "rejected"}
+            />
+          </button>
         </section>
-
-        {/* legend وضعیت‌ها */}
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 text-xs">
-          <Filter className="size-3.5 text-slate-400" />
-          <span className="font-semibold text-slate-600">وضعیت‌ها:</span>
-          {(["draft", "in_progress", "approved", "rejected"] as QuoteStatus[]).map((s) => (
-            <span key={s} className="flex items-center gap-1">
-              <StatusBadge tone={QUOTE_STATUS_TONE[s]}>{QUOTE_STATUS_LABELS[s]}</StatusBadge>
-            </span>
-          ))}
-        </div>
-
-        {/* فیلترها */}
-        <Toolbar
-          filters={
-            <>
-              <FilterSelect
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as QuoteStatus | "all")}
-              >
-                <option value="all">همه وضعیت‌ها</option>
-                <option value="draft">پیش‌نویس</option>
-                <option value="in_progress">در حال انجام</option>
-                <option value="approved">تایید شده</option>
-                <option value="rejected">تایید نشده</option>
-              </FilterSelect>
-              <FilterSelect
-                value={filterStage}
-                onChange={(e) => setFilterStage(e.target.value)}
-              >
-                <option value="all">همه مراحل</option>
-                <option value="1">مرحله ۱ — ثبت درخواست</option>
-                <option value="2">مرحله ۲ — صدور پیش‌فاکتور</option>
-                <option value="3">مرحله ۳ — قرارداد</option>
-                <option value="4">مرحله ۴ — اجرایی</option>
-              </FilterSelect>
-            </>
-          }
-        />
 
         {filtered.length === 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             <AlertCircle className="size-4 shrink-0" />
             <span>درخواستی با این فیلترها یافت نشد.</span>
             <button
-              onClick={() => { setFilterStatus("all"); setFilterStage("all"); }}
+              onClick={() => setFilterStatus("all")}
               className="mr-auto text-xs font-semibold underline underline-offset-2"
             >
               پاک کردن فیلترها
