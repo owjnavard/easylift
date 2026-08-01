@@ -21,6 +21,7 @@ export function KpiCard({
   tone = "slate",
   delta,
   deltaUp = true,
+  active = false,
   className,
 }: {
   label: string;
@@ -30,6 +31,7 @@ export function KpiCard({
   tone?: KpiTone;
   delta?: string;
   deltaUp?: boolean;
+  active?: boolean;
   className?: string;
 }) {
   if (tone === "hero") {
@@ -37,6 +39,7 @@ export function KpiCard({
       <div
         className={cn(
           "relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-500 p-5 text-white shadow-sm",
+          active && "ring-2 ring-emerald-400 ring-offset-2",
           className
         )}
       >
@@ -75,7 +78,8 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm",
+        "rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-shadow",
+        active && "ring-2 ring-emerald-400 ring-offset-2",
         className
       )}
     >
