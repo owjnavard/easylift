@@ -125,14 +125,7 @@ function makeElevators(projectId: string, count: number): Elevator[] {
   });
 }
 
-function seed(): {
-  projects: Project[];
-  elevators: Elevator[];
-  tasks: Task[];
-  commitments: Commitment[];
-  supplies: PartSupply[];
-  taskTemplates: TaskTemplate[];
-} {
+function seed(): { projects: Project[]; elevators: Elevator[] } {
   const projects: Project[] = [];
   const elevators: Elevator[] = [];
 
